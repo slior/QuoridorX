@@ -1,0 +1,26 @@
+{
+  "name": "quoridor",
+  "version": "1.0.0",
+  "description": "A command-line Quoridor game implementation",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "pretest": "tsc",
+    "test": "mocha dist/test/**/*.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chai": "^5.2.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.0.0",
+    "chai": "^4.3.4",
+    "mocha": "^11.1.0",
+    "ts-mocha": "^11.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}

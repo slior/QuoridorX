@@ -1,11 +1,11 @@
+
+export const DEFAULT_GAME_SIZE = 9;
+
 export class Position
 {
   readonly row: number;
   readonly col: number;
   readonly boardSize : number;
-  
-  // // Static board size that will be set once
-  // private static boardSize: number;
   
   // Make constructor private to prevent extension and direct instantiation
   private constructor(row: number, col: number, boardSize :  number) {
@@ -14,19 +14,7 @@ export class Position
     this.boardSize = boardSize
   }
   
-  // // Method to initialize the board size once
-  // static initializeBoardSize(size: number): void {
-  //   // if (Position.boardSize !== undefined) {
-  //   if (Position.isSizeInitialized) {
-  //     throw new Error('Board size has already been initialized');
-  //   }
-  //   Position.boardSize = size;
-  // }
-
-  // static get isSizeInitialized() : boolean { return Position.boardSize !== undefined }
-  
-  
-  static create(row: number, col: number, boardSize : number): Position {
+  static create(row: number, col: number, boardSize : number = DEFAULT_GAME_SIZE): Position {
 
       if (boardSize === undefined || boardSize <= 0) throw new Error("Invalid board size")
       if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) {
@@ -36,10 +24,8 @@ export class Position
   }
 
   right(): Position {
-    if (this.col >= this.boardSize - 1) {
+    if (this.col >= this.boardSize - 1)
       throw new Error(`No right from position: row ${this.row}, col ${this.col} as it is in the rightmost column`);
-    }
-    // return Position.create(this.row, this.col + 1);
     return new Position(this.row,this.col + 1,this.boardSize)
   }
 
@@ -47,7 +33,6 @@ export class Position
     if (this.col <= 0) {
       throw new Error(`No left from position: row ${this.row}, col ${this.col} as it is in the leftmost column`);
     }
-    // return Position.create(this.row, this.col - 1);
     return new Position(this.row, this.col - 1, this.boardSize)
   }
 
@@ -55,7 +40,6 @@ export class Position
     if (this.row <= 0) {
       throw new Error(`No up from position: row ${this.row}, col ${this.col} as it is in the topmost row`);
     }
-    // return Position.create(this.row - 1, this.col);
     return new Position(this.row-1, this.col,this.boardSize)
   }
 
@@ -63,7 +47,6 @@ export class Position
     if (this.row >= this.boardSize - 1) {
       throw new Error(`No down from position: row ${this.row}, col ${this.col} as it is in the bottommost row`);
     }
-    // return Position.create(this.row + 1, this.col);
     return new Position(this.row + 1, this.col, this.boardSize)
   }
 

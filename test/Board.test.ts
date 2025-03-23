@@ -62,7 +62,7 @@ describe('Board', () => {
       const board = new Board();
       const boardSize = board.getBoardSize();
       const wall1 = new Wall(Position.create(3, 3, boardSize), true);
-      const wall2 = new Wall(Position.create(3, 3, boardSize), false);
+      const wall2 = new Wall(Position.create(3, 4, boardSize), false);
       
       board.placeWall(wall1);
       expect(() => board.placeWall(wall2)).to.throw('Invalid wall placement');
@@ -208,6 +208,78 @@ describe('Board', () => {
 
         expect(() => board.movePawn(1, targetPos)).to.not.throw();
       });
+    });
+  });
+
+  describe('wall management', () => {
+    it('should correctly detect walls between positions', () => {
+      const board = new Board();
+      const boardSize = board.getBoardSize();
+      
+      // Test horizontal wall
+      const hWall = new Wall(Position.create(4, 3, boardSize), true);
+      board.placeWall(hWall);
+      
+      // Should block vertical movement
+      expect(board.isWallBetween(
+        Position.create(4, 3, boardSize),
+        Position.create(5, 3, boardSize)
+      )).to.be.true;
+      
+      // Should not block horizontal movement
+      expect(board.isWallBetween(
+        Position.create(4, 3, boardSize),
+        Position.create(4, 4, boardSize)
+      )).to.be.false;
+
+      board.removeLastWall()
+
+      // Test vertical wall
+      const vWall = new Wall(Position.create(3, 4, boardSize), false);
+      board.placeWall(vWall);
+      
+      // Should block horizontal movement
+      expect(board.isWallBetween(
+        Position.create(3, 4, boardSize),
+        Position.create(3, 5, boardSize)
+      )).to.be.true;
+      
+      // Should not block vertical movement
+      expect(board.isWallBetween(
+        Position.create(3, 4, boardSize),
+        Position.create(4, 4, boardSize)
+      )).to.be.false;
+    });
+
+    it('should correctly remove last placed wall', () => {
+      const board = new Board();
+      const boardSize = board.getBoardSize();
+      const wall1 = new Wall(Position.create(3, 3, boardSize), true);
+      const wall2 = new Wall(Position.create(4, 4, boardSize), false);
+      
+      board.placeWall(wall1);
+      board.placeWall(wall2);
+      
+      // Initially wall2 blocks movement
+      expect(board.isWallBetween(
+        Position.create(4, 4, boardSize),
+        Position.create(4, 5, boardSize)
+      )).to.be.true;
+      
+      // Remove wall2
+      board.removeLastWall();
+      
+      // Now wall2 should not block movement
+      expect(board.isWallBetween(
+        Position.create(4, 4, boardSize),
+        Position.create(4, 5, boardSize)
+      )).to.be.false;
+      
+      // wall1 should still block movement
+      expect(board.isWallBetween(
+        Position.create(3, 3, boardSize),
+        Position.create(4, 3, boardSize)
+      )).to.be.true;
     });
   });
 }); 

@@ -49,7 +49,7 @@ export class Board {
     public placeWall(wall: Wall)
     {
         if (!this.isValidWallPlacement(wall)) {
-            throw new Error(`Invalid wall placement: ${wall}`)
+            throw new Error(`Invalid wall placement: (${wall.position.row}, ${wall.position.col}, ${wall.isHorizontal})`)
         }
 
         this.walls.push(wall)
@@ -68,17 +68,26 @@ export class Board {
     private isValidWallPlacement(wall: Wall): boolean {
   
         // Check if wall would extend beyond board
-        if (wall.isHorizontal && wall.position.col >= this.boardSize - 1) {
+        if (wall.isHorizontal && wall.position.col >= this.boardSize - 1) 
             return false;
-        }
-        if (!wall.isHorizontal && wall.position.row >= this.boardSize - 1) {
+ 
+        if (!wall.isHorizontal && wall.position.row >= this.boardSize - 1)
             return false;
-        }
-
-        //Check if wall intersects with existing walls
-        const thisWallPositions = wall.occupies()
-        return this.walls.every(w => arePositionsMutuallyExclusive(w.occupies(),thisWallPositions))
-       
+        
+        const argumentWallPositions = wall.occupies();
+        
+        // Check for overlaps with existing walls of the same orientation
+        const sameOrientationWalls = this.walls.filter(w => w.isHorizontal === wall.isHorizontal);
+        if (sameOrientationWalls.some(w => !arePositionsMutuallyExclusive(w.occupies(), argumentWallPositions))) 
+            return false;
+        
+        // Check for intersections with walls of different orientation
+        const differentOrientationWalls = this.walls.filter(w => w.isHorizontal !== wall.isHorizontal);
+        
+        const invalidatedPositions = differentOrientationWalls.map(w => w.occupies()[1]) //for each existing wall, its second position invalidates placement of a new wall. TODO: this can probably be optimized.
+        if (invalidatedPositions.length <= 0) return true;
+        
+        return !invalidatedPositions.some(p => wall.position.equals(p))
     }
 
     /**
@@ -196,7 +205,7 @@ export class Board {
     /**
      * Check if there's a wall between two adjacent positions
      */
-    private isWallBetween(pos1: Position, pos2: Position): boolean {
+    public isWallBetween(pos1: Position, pos2: Position): boolean {
         // For vertical movement (different rows, same column)
         if (pos1.col === pos2.col) {
             const minRow = Math.min(pos1.row, pos2.row);
@@ -231,6 +240,13 @@ export class Board {
      */
     private isOccupied(position: Position): boolean {
         return Array.from(this.pawns.values()).some(pos => pos.equals(position));
+    }
+
+    /**
+     * Remove the last placed wall (used for rollback)
+     */
+    public removeLastWall(): void {
+        this.walls.pop();
     }
 
 } 

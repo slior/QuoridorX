@@ -60,6 +60,11 @@ export class Position
   hashCode(): string {
     return `${this.row},${this.col}`;
   }
+
+  toString() : string
+  {
+    return `(${this.row},${this.col})`
+  }
 }
 
 /**
@@ -96,6 +101,12 @@ export class Wall {
                         this.position.down()
     return [this.position, secondPos]
   }
+
+  toString() : string
+  {
+    return `(${this.occupies().map(p => p.toString())}) - ${this.isHorizontal}`
+  }
+  
 }
 
 // Define constants for player types

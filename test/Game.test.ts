@@ -48,6 +48,28 @@ describe('Game', () => {
       expect(() => game.placeWall(999, wall))
         .to.throw(GameError, 'Player 999 is not in the game');
     });
+
+    it('should throw when adding more than two players', () => {
+      // Add first two players - should succeed
+      expect(() => game.addPlayer(PLAYER1_ID)).to.not.throw();
+      expect(() => game.addPlayer(PLAYER2_ID)).to.not.throw();
+
+      // Try to add a third player - should throw
+      expect(() => game.addPlayer(3))
+        .to.throw(GameError, 'Game already has maximum number of players');
+      
+      // Try to add a fourth player - should throw
+      expect(() => game.addPlayer(4))
+        .to.throw(GameError, 'Game already has maximum number of players');
+    });
+
+    it('should allow adding players in any order', () => {
+      // Add player 2 first
+      expect(() => game.addPlayer(PLAYER2_ID)).to.not.throw();
+      
+      // Add player 1 second
+      expect(() => game.addPlayer(PLAYER1_ID)).to.not.throw();
+    });
   });
 
   describe('wall placement', () => {

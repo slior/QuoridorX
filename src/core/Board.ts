@@ -127,19 +127,18 @@ export class Board {
                 return false;
             }
         }
-
         // Check if move is orthogonal and one step
         try {
-            if (currentPosition.right().equals(targetPosition) && !this.isWallBetween(currentPosition, targetPosition)) {
+            if (currentPosition.hasRight() && currentPosition.right().equals(targetPosition) && !this.isWallBetween(currentPosition, targetPosition)) {
                 return true;
             }
-            if (currentPosition.left().equals(targetPosition) && !this.isWallBetween(currentPosition, targetPosition)) {
+            if (currentPosition.hasLeft() && currentPosition.left().equals(targetPosition) && !this.isWallBetween(currentPosition, targetPosition)) {
                 return true;
             }
-            if (currentPosition.up().equals(targetPosition) && !this.isWallBetween(currentPosition, targetPosition)) {
+            if (currentPosition.hasUp() && currentPosition.up().equals(targetPosition) && !this.isWallBetween(currentPosition, targetPosition)) {
                 return true;
             }
-            if (currentPosition.down().equals(targetPosition) && !this.isWallBetween(currentPosition, targetPosition)) {
+            if (currentPosition.hasDown() && currentPosition.down().equals(targetPosition) && !this.isWallBetween(currentPosition, targetPosition)) {
                 return true;
             }
         } catch (e) {

@@ -1,4 +1,3 @@
-
 export const DEFAULT_GAME_SIZE = 9;
 
 export class Position
@@ -23,30 +22,36 @@ export class Position
       return new Position(row, col,boardSize);
   }
 
+  hasRight() : boolean { return this.col < this.boardSize - 1}
+
   right(): Position {
-    if (this.col >= this.boardSize - 1)
+    if (!this.hasRight())
       throw new Error(`No right from position: row ${this.row}, col ${this.col} as it is in the rightmost column`);
     return new Position(this.row,this.col + 1,this.boardSize)
   }
 
+  hasLeft() : boolean { return this.col > 0 }
   left(): Position {
-    if (this.col <= 0) {
+    if (!this.hasLeft())
       throw new Error(`No left from position: row ${this.row}, col ${this.col} as it is in the leftmost column`);
-    }
     return new Position(this.row, this.col - 1, this.boardSize)
   }
 
+  hasUp() : boolean { return this.row > 0}
+
   up(): Position {
-    if (this.row <= 0) {
+    if (!this.hasUp())
       throw new Error(`No up from position: row ${this.row}, col ${this.col} as it is in the topmost row`);
-    }
     return new Position(this.row-1, this.col,this.boardSize)
   }
 
+  hasDown() : boolean { return this.row < this.boardSize - 1 }
+  
   down(): Position {
-    if (this.row >= this.boardSize - 1) {
+    
+    if (!this.hasDown())
       throw new Error(`No down from position: row ${this.row}, col ${this.col} as it is in the bottommost row`);
-    }
+    
     return new Position(this.row + 1, this.col, this.boardSize)
   }
 
@@ -123,15 +128,15 @@ export interface Player {
   wallsRemaining: number;
 }
 
+export enum GameStatus {
+    IN_PROGRESS = 'IN_PROGRESS',
+    PLAYER_1_WON = 'PLAYER_1_WON',
+    PLAYER_2_WON = 'PLAYER_2_WON'
+}
+
 export interface GameState {
-  board: {
-    size: number;
-    walls: Wall[];
-  };
-  players: Player[];
-  currentPlayerIndex: number;
-  isGameOver: boolean;
-  winner: string | null;
+    currentTurn: PlayerID;
+    status: GameStatus;
 }
 
 // Define constants for move types

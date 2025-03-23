@@ -130,4 +130,94 @@ describe('Position', () => {
       expect(pos1.hashCode()).to.not.equal(pos2.hashCode());
     });
   });
+
+  describe('boundary checks', () => {
+    describe('hasRight', () => {
+      it('should return true when not in rightmost column', () => {
+        const pos = Position.create(4, 0, TEST_BOARD_SIZE);
+        expect(pos.hasRight()).to.be.true;
+      });
+
+      it('should return false when in rightmost column', () => {
+        const pos = Position.create(4, TEST_BOARD_SIZE - 1, TEST_BOARD_SIZE);
+        expect(pos.hasRight()).to.be.false;
+      });
+    });
+
+    describe('hasLeft', () => {
+      it('should return true when not in leftmost column', () => {
+        const pos = Position.create(4, 1, TEST_BOARD_SIZE);
+        expect(pos.hasLeft()).to.be.true;
+      });
+
+      it('should return false when in leftmost column', () => {
+        const pos = Position.create(4, 0, TEST_BOARD_SIZE);
+        expect(pos.hasLeft()).to.be.false;
+      });
+    });
+
+    describe('hasUp', () => {
+      it('should return true when not in topmost row', () => {
+        const pos = Position.create(1, 4, TEST_BOARD_SIZE);
+        expect(pos.hasUp()).to.be.true;
+      });
+
+      it('should return false when in topmost row', () => {
+        const pos = Position.create(0, 4, TEST_BOARD_SIZE);
+        expect(pos.hasUp()).to.be.false;
+      });
+    });
+
+    describe('hasDown', () => {
+      it('should return true when not in bottommost row', () => {
+        const pos = Position.create(0, 4, TEST_BOARD_SIZE);
+        expect(pos.hasDown()).to.be.true;
+      });
+
+      it('should return false when in bottommost row', () => {
+        const pos = Position.create(TEST_BOARD_SIZE - 1, 4, TEST_BOARD_SIZE);
+        expect(pos.hasDown()).to.be.false;
+      });
+    });
+
+    describe('edge cases', () => {
+      it('should correctly identify corners', () => {
+        // Top-left corner
+        const topLeft = Position.create(0, 0, TEST_BOARD_SIZE);
+        expect(topLeft.hasUp()).to.be.false;
+        expect(topLeft.hasLeft()).to.be.false;
+        expect(topLeft.hasRight()).to.be.true;
+        expect(topLeft.hasDown()).to.be.true;
+
+        // Top-right corner
+        const topRight = Position.create(0, TEST_BOARD_SIZE - 1, TEST_BOARD_SIZE);
+        expect(topRight.hasUp()).to.be.false;
+        expect(topRight.hasRight()).to.be.false;
+        expect(topRight.hasLeft()).to.be.true;
+        expect(topRight.hasDown()).to.be.true;
+
+        // Bottom-left corner
+        const bottomLeft = Position.create(TEST_BOARD_SIZE - 1, 0, TEST_BOARD_SIZE);
+        expect(bottomLeft.hasDown()).to.be.false;
+        expect(bottomLeft.hasLeft()).to.be.false;
+        expect(bottomLeft.hasRight()).to.be.true;
+        expect(bottomLeft.hasUp()).to.be.true;
+
+        // Bottom-right corner
+        const bottomRight = Position.create(TEST_BOARD_SIZE - 1, TEST_BOARD_SIZE - 1, TEST_BOARD_SIZE);
+        expect(bottomRight.hasDown()).to.be.false;
+        expect(bottomRight.hasRight()).to.be.false;
+        expect(bottomRight.hasLeft()).to.be.true;
+        expect(bottomRight.hasUp()).to.be.true;
+      });
+
+      it('should correctly identify center position', () => {
+        const center = Position.create(TEST_BOARD_SIZE / 2, TEST_BOARD_SIZE / 2, TEST_BOARD_SIZE);
+        expect(center.hasUp()).to.be.true;
+        expect(center.hasDown()).to.be.true;
+        expect(center.hasLeft()).to.be.true;
+        expect(center.hasRight()).to.be.true;
+      });
+    });
+  });
 }); 

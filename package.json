@@ -1,7 +1,7 @@
 {
   "name": "quoridor",
   "version": "1.0.0",
-  "description": "A command-line Quoridor game implementation",
+  "description": "Quoridor game implementation",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -9,7 +9,7 @@
     "dev": "ts-node src/index.ts",
     "pretest": "tsc",
     "test": "mocha dist/test/**/*.test.js",
-     "coverage": "c8 mocha 'test/**/*.ts' --require ts-node/register"
+    "coverage": "c8 mocha 'test/**/*.ts' --require ts-node/register"
   },
   "keywords": [],
   "author": "",
@@ -26,13 +26,24 @@
     "typescript": "^5.8.2"
   },
   "c8": {
-    "reporter": ["text", "html"],
-    "include" : ["src/**"],
-    "exclude": ["test/**","node_modules/**"],
+    "reporter": [
+      "text",
+      "html"
+    ],
+    "include": [
+      "src/**"
+    ],
+    "exclude": [
+      "test/**",
+      "node_modules/**"
+    ],
     "check-coverage": true,
     "branches": 80,
     "lines": 80,
     "functions": 80,
     "statements": 80
+  },
+  "dependencies": {
+    "chalk": "^4.1.2"
   }
 }

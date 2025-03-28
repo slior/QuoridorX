@@ -7,6 +7,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
+    "rebuild": "npm run build && npm link",
     "pretest": "tsc",
     "test": "mocha dist/test/**/*.test.js",
     "coverage": "c8 mocha 'test/**/*.ts' --require ts-node/register"
@@ -45,5 +46,8 @@
   },
   "dependencies": {
     "chalk": "^4.1.2"
+  },
+  "bin": {
+    "quoridor": "./bin/quoridor"
   }
 }

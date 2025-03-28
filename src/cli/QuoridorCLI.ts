@@ -3,6 +3,7 @@ import { Game } from '../core/Game';
 import { BoardVisualizer } from './BoardVisualizer';
 import { createInterface } from 'readline';
 import chalk from 'chalk';
+import { GameStatus } from '../types/game';
 
 const QUIT_COMMAND = 'quit'
 const HELP_COMMNAD = 'help'
@@ -36,6 +37,27 @@ export class QuoridorCLI {
         console.log('  quit                 - Exit the game\n');
     }
 
+    private executeGameCommand(command : Command, commandArgs : string[])
+    {
+        try {
+            command.execute(this.game, commandArgs);
+            
+            console.log(this.boardVisualizer.visualize());
+            // Check if game has ended and show status if it has
+            const gameState = this.game.getGameState();
+            if (gameState.status !== GameStatus.IN_PROGRESS) {
+                const statusCommand = this.commands.get('status');
+                if (statusCommand) {
+                    statusCommand.execute(this.game, []);
+                }
+            }
+        } catch (error: any) {
+            console.error(chalk.red(`Error: ${error.message || error}`));
+            if (this.game.getGameState().status === GameStatus.IN_PROGRESS)
+                console.log(`Usage: ${command.syntax}`);
+        }
+    }
+
     private resolveCommand(cmdName : string, commandArgs : string[]) : () => void
     {
         if (cmdName === QUIT_COMMAND)
@@ -56,15 +78,8 @@ export class QuoridorCLI {
             const command = this.commands.get(cmdName)
             if (command)
             {
-                return () => {
-                    try {
-                        command.execute(this.game, commandArgs);
-                        // After each successful command, show the board
-                        console.log(this.boardVisualizer.visualize());
-                    } catch (error: any) {
-                        console.error(chalk.red(`Error: ${error.message || error}`));
-                        console.log(`Usage: ${command.syntax}`);
-                    }
+                return () => { this.executeGameCommand(command,commandArgs)
+                    
                 }
             }
             else return () => {

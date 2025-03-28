@@ -4,6 +4,7 @@ import { BoardVisualizer } from './BoardVisualizer';
 import { createInterface } from 'readline';
 import chalk from 'chalk';
 import { GameStatus } from '../types/game';
+import { PlayerID } from '../types/game';
 
 const QUIT_COMMAND = 'quit'
 const HELP_COMMNAD = 'help'
@@ -16,13 +17,21 @@ export class QuoridorCLI {
     private readonly readline = createInterface({
         input: process.stdin,
         output: process.stdout,
-        prompt: chalk.cyan('quoridor> ')
+        prompt: '' // Initial empty prompt, will be set in updatePromptColor
     });
 
     constructor(game: Game) {
         this.game = game;
         this.commands = new Map();
         this.boardVisualizer = new BoardVisualizer(game.getBoard());
+        this.updatePromptColor(); // Set initial prompt color
+    }
+
+    
+    private updatePromptColor(): void {
+        const currentPlayer = this.game.getGameState().currentTurn;
+        const color = this.boardVisualizer.getColorFor(currentPlayer)
+        this.readline.setPrompt(color('quoridor> '));
     }
 
     public registerCommand(command: Command): void {
@@ -50,6 +59,8 @@ export class QuoridorCLI {
                 if (statusCommand) {
                     statusCommand.execute(this.game, []);
                 }
+            } else {
+                this.updatePromptColor(); // Update prompt color after each move
             }
         } catch (error: any) {
             console.error(chalk.red(`Error: ${error.message || error}`));
@@ -78,9 +89,7 @@ export class QuoridorCLI {
             const command = this.commands.get(cmdName)
             if (command)
             {
-                return () => { this.executeGameCommand(command,commandArgs)
-                    
-                }
+                return () => { this.executeGameCommand(command,commandArgs)}
             }
             else return () => {
                 console.log(`Unknown command: ${cmdName}`);

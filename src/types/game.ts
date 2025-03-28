@@ -120,6 +120,8 @@ export const PLAYER_TYPE_AI = 'ai';
 export type PlayerType = typeof PLAYER_TYPE_HUMAN | typeof PLAYER_TYPE_AI;
 
 export type PlayerID = number
+export const P1 : PlayerID = 1
+export const P2 : PlayerID = 2
 
 export interface Player {
   id: PlayerID;

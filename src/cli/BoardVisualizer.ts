@@ -1,8 +1,7 @@
 import chalk from 'chalk';
 import { Board } from '../core/Board';
-import { Position } from '../types/game';
-import { Wall } from '../types/game';
-import { PlayerID } from '../types/game';
+import { Position , P1, P2, PlayerID} from '../types/game';
+
 
 interface ColorScheme {
     player1: chalk.Chalk;
@@ -27,6 +26,15 @@ export class BoardVisualizer {
     constructor(board: Board, colorScheme: ColorScheme = DEFAULT_COLOR_SCHEME) {
         this.board = board;
         this.colorScheme = colorScheme;
+    }
+
+    public getColorFor(player : PlayerID): chalk.Chalk
+    {
+        if (player == P1)
+            return this.colorScheme.player1
+        else if (player == P2)
+            return this.colorScheme.player2
+        else throw new Error("Invalid player id: " + player)
     }
 
     /**

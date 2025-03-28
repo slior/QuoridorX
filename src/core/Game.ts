@@ -209,4 +209,18 @@ export class Game {
             position.row === this.board.getBoardSize() - 1 : 
             position.row === 0;
     }
+
+    /**
+     * Get the game board
+     */
+    public getBoard(): Board {
+        return this.board;
+    }
+
+    /**
+     * Get the remaining walls for each player
+     */
+    public getRemainingWalls(): Map<PlayerID, number> {
+        return new Map(this.remainingWalls);
+    }
 } 

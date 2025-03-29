@@ -109,7 +109,7 @@ export class Wall {
 
   toString() : string
   {
-    return `(${this.occupies().map(p => p.toString())}) - ${this.isHorizontal}`
+    return `[${this.occupies().map(p => p.toString())}/${this.isHorizontal? "H":"V"}]`
   }
   
 }

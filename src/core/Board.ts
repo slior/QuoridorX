@@ -220,14 +220,17 @@ export class Board {
         
         // For horizontal movement (same row, different columns)
         if (pos1.row === pos2.row) {
-            const minCol = Math.min(pos1.col, pos2.col);
-            // Check for vertical walls (which block horizontal movement)
+            const rightPos = pos1.col < pos2.col ? pos2 : pos1;
+            const leftPos = pos1.col < pos2.col ? pos1 : pos2;
+            
             return this.walls.some(wall => {
                 if (wall.isHorizontal) return false; // Only vertical walls block horizontal movement
                 const wallPositions = wall.occupies();
-                // Wall must be at the column between the positions and span the row they're in
-                return wall.position.col === minCol && 
-                       wallPositions.some(pos => pos.row === pos1.row);
+            
+                const wallOnSameRow = wallPositions.some(pos => pos.row == pos1.row);
+                const isBetweenColumns = wallPositions.some( pos => pos.col > leftPos.col && pos.col == rightPos.col)
+            
+                return wallOnSameRow && isBetweenColumns
             });
         }
 

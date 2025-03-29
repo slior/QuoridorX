@@ -109,11 +109,9 @@ export class BoardVisualizer {
         // Check for pawns
         for (const playerId of [1, 2] as PlayerID[]) {
             const pawnPos = this.board.getPawnPosition(playerId);
-            if (pawnPos?.equals(position)) {
-                // const color = playerId === 1 ? this.colorScheme.player1 : this.colorScheme.player2;
-                // return color(` ${playerId} `);
+            if (pawnPos?.equals(position)) 
                 return this.drawPawn(playerId);
-            }
+            
         }
         return '   '; // Empty cell
     }
@@ -127,7 +125,7 @@ export class BoardVisualizer {
     private hasHorizontalWall(row: number, col: number): boolean {
         try {
             const position = Position.create(row, col, this.board.getBoardSize());
-            return this.board.isWallBetween(position, position.down());
+            return this.board.isWallBetween(position, position.up());
         } catch {
             return false;
         }
@@ -136,7 +134,7 @@ export class BoardVisualizer {
     private hasVerticalWall(row: number, col: number): boolean {
         try {
             const position = Position.create(row, col, this.board.getBoardSize());
-            return this.board.isWallBetween(position, position.right());
+            return this.board.isWallBetween(position, position.left());
         } catch {
             return false;
         }

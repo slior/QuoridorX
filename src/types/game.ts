@@ -88,6 +88,36 @@ export class Wall {
     this.isHorizontal = isHorizontal;
   }
 
+  occupies() : Position[]
+  {
+    const secondPos = this.isHorizontal ? 
+                        this.position.right() :
+                        this.position.down()
+    return [this.position, secondPos]
+  }
+
+  /**
+   * Tests if this wall blocks any column on the given row.
+   * 
+   * @param r the row to test
+   * @returns TRUE iff this is a vertical wall that blocks any column on the given row.
+   */
+  isBlockingRow(r : number) : boolean
+  {
+    return !this.isHorizontal && this.occupies().some(p => p.row == r)
+  }
+
+  /**
+   * Tests if this wall blocks any row on the given column.
+   * 
+   * @param c the column to test
+   * @returns TRUE iff this horizontal wall that blocks any row on the given column
+   */
+  isBlockingCol(c : number) : boolean
+  {
+    return this.isHorizontal && this.occupies().some(p => p.col == c)
+  }
+
   // Equality method to compare walls
   equals(other: Wall): boolean {
     return this.position.equals(other.position) && 
@@ -99,13 +129,6 @@ export class Wall {
     return `${this.position.row},${this.position.col},${this.isHorizontal}`;
   }
 
-  occupies() : Position[]
-  {
-    const secondPos = this.isHorizontal ? 
-                        this.position.right() :
-                        this.position.down()
-    return [this.position, secondPos]
-  }
 
   toString() : string
   {

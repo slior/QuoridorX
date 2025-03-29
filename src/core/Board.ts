@@ -209,11 +209,10 @@ export class Board {
         if (pos1.col === pos2.col) {
             const minRow = Math.min(pos1.row, pos2.row);
             // Check for horizontal walls (which block vertical movement)
-            return this.walls.some(wall => {
-                if (!wall.isHorizontal) return false; // Only horizontal walls block vertical movement
+            return this.horizontalWalls().some(wall => {
                 const wallPositions = wall.occupies();
-                // Wall must be at the row between the positions and span the column they're in
-                return wall.position.row === minRow && 
+                
+                return wall.position.row === minRow && // Wall must be at the row between the positions and span the column they're in
                        wallPositions.some(pos => pos.col === pos1.col);
             });
         }
@@ -223,14 +222,11 @@ export class Board {
             const rightPos = pos1.col < pos2.col ? pos2 : pos1;
             const leftPos = pos1.col < pos2.col ? pos1 : pos2;
             
-            return this.walls.some(wall => {
-                if (wall.isHorizontal) return false; // Only vertical walls block horizontal movement
-                const wallPositions = wall.occupies();
+            return this.verticalWalls().some(wall => {
+                const isBlockingRow = wall.isBlockingRow(pos1.row)
+                const isBetweenColumns = wall.occupies().some( pos => pos.col > leftPos.col && pos.col == rightPos.col)
             
-                const wallOnSameRow = wallPositions.some(pos => pos.row == pos1.row);
-                const isBetweenColumns = wallPositions.some( pos => pos.col > leftPos.col && pos.col == rightPos.col)
-            
-                return wallOnSameRow && isBetweenColumns
+                return isBlockingRow && isBetweenColumns
             });
         }
 

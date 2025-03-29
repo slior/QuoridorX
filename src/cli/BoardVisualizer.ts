@@ -107,7 +107,7 @@ export class BoardVisualizer {
 
     private getCellContent(position: Position): string {
         // Check for pawns
-        for (const playerId of [1, 2] as PlayerID[]) {
+        for (const playerId of [P1, P2] as PlayerID[]) {
             const pawnPos = this.board.getPawnPosition(playerId);
             if (pawnPos?.equals(position)) 
                 return this.drawPawn(playerId);
@@ -118,7 +118,7 @@ export class BoardVisualizer {
 
     private drawPawn(playerId : PlayerID) : string 
     {
-        const color = playerId === 1 ? this.colorScheme.player1 : this.colorScheme.player2;
+        const color = playerId === P1 ? this.colorScheme.player1 : this.colorScheme.player2;
         return color(` ${playerId} `);
     }
     

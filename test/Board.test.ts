@@ -175,7 +175,7 @@ describe('Board', () => {
       it('should prevent moving through vertical walls', () => {
         const pos1 = Position.create(4, 4, boardSize);
         const targetPos = Position.create(4, 5, boardSize);
-        const wall = new Wall(Position.create(4, 4, boardSize), false);
+        const wall = new Wall(Position.create(4, 5, boardSize), false);
         const initialPawns = new Map([[1, pos1]]);
         const board = Board.withPawns(initialPawns, boardSize);
         board.placeWall(wall);
@@ -235,7 +235,7 @@ describe('Board', () => {
       board.removeLastWall()
 
       // Test vertical wall
-      const vWall = new Wall(Position.create(3, 4, boardSize), false);
+      const vWall = new Wall(Position.create(3, 5, boardSize), false);
       board.placeWall(vWall);
       
       // Should block horizontal movement
@@ -255,7 +255,7 @@ describe('Board', () => {
       const board = new Board();
       const boardSize = board.getBoardSize();
       const wall1 = new Wall(Position.create(3, 3, boardSize), true);
-      const wall2 = new Wall(Position.create(4, 4, boardSize), false);
+      const wall2 = new Wall(Position.create(4, 5, boardSize), false);
       
       board.placeWall(wall1);
       board.placeWall(wall2);

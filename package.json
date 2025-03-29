@@ -9,7 +9,8 @@
     "dev": "ts-node src/index.ts",
     "rebuild": "npm run build && npm link",
     "pretest": "tsc",
-    "test": "mocha dist/test/**/*.test.js",
+  
+    "test": "mocha 'test/**/*.ts' --require ts-node/register",
     "coverage": "c8 mocha 'test/**/*.ts' --require ts-node/register"
   },
   "keywords": [],

@@ -1,5 +1,5 @@
 import { Board } from './Board';
-import { Position, Wall, PlayerID, DEFAULT_GAME_SIZE, GameState, GameStatus } from '../types/game';
+import { Position, Wall, PlayerID, DEFAULT_GAME_SIZE, GameState, GameStatus, GameHistoryState } from '../types/game';
 
 export class GameError extends Error {
     constructor(message: string) {
@@ -33,10 +33,12 @@ export class GameEndedError extends GameError {
 }
 
 export class Game {
-    private readonly board: Board;
+    private board: Board;
     private readonly wallsPerPlayer: number;
-    private readonly remainingWalls: Map<PlayerID, number>;
+    private remainingWalls: Map<PlayerID, number>;
     private gameState: GameState;
+    private history: GameHistoryState[];
+    private redoStack: GameHistoryState[];
     
     constructor(board: Board, wallsPerPlayer: number = 10) {
         this.board = board;
@@ -46,6 +48,8 @@ export class Game {
             currentTurn: 1, // Player 1 starts
             status: GameStatus.IN_PROGRESS
         };
+        this.history = [];
+        this.redoStack = [];
     }
 
     /**
@@ -74,29 +78,43 @@ export class Game {
     public placeWall(playerId: PlayerID, wall: Wall): void
     {
         this.validatePlayer(playerId);
-        
         this.validateGameInProgress();
         this.validatePlayerTurn(playerId);
+
+        // Save current state before making changes
+        this.history.push(this.saveCurrentState());
+        // Clear redo stack as we're making a new move
+        this.redoStack = [];
 
         // Check if player has walls remaining
         const remainingWalls = this.remainingWalls.get(playerId);
         
         if (remainingWalls !== undefined && remainingWalls <= 0) {
+            this.history.pop(); // Rollback state save on error
             throw new NoWallsRemainingError(playerId);
         } 
-        if (remainingWalls === undefined) throw new GameError(`Missing remaining walls for ${playerId}`) //remainingWalls === undefined shouldn't happen at this point.
-        
-        this.board.placeWall(wall);
-        
-        // Check if both players can reach their goals
-        if (!this.allPlayersHavePathToGoal()) {
-            // Rollback wall placement
-            this.board.removeLastWall();
-            throw new PathBlockedError();
+        if (remainingWalls === undefined) {
+            this.history.pop(); // Rollback state save on error
+            throw new GameError(`Missing remaining walls for ${playerId}`);
         }
-        this.remainingWalls.set(playerId, remainingWalls - 1); // Update remaining walls
         
-        this.switchTurns();
+        try {
+            this.board.placeWall(wall);
+            
+            // Check if both players can reach their goals
+            if (!this.allPlayersHavePathToGoal()) {
+                // Rollback wall placement
+                this.board.removeLastWall();
+                this.history.pop(); // Rollback state save on error
+                throw new PathBlockedError();
+            }
+            this.remainingWalls.set(playerId, remainingWalls - 1); // Update remaining walls
+            
+            this.switchTurns();
+        } catch (error) {
+            this.history.pop(); // Rollback state save on error
+            throw error;
+        }
     }
 
     /**
@@ -106,16 +124,75 @@ export class Game {
         this.validateGameInProgress();
         this.validatePlayerTurn(playerId);
 
-        this.board.movePawn(playerId, targetPosition);
+        // Save current state before making changes
+        this.history.push(this.saveCurrentState());
         
-        // Check if player won
-        if (this.isGoalPosition(playerId, targetPosition)) {
-            this.gameState.status = playerId === 1 ? GameStatus.PLAYER_1_WON : GameStatus.PLAYER_2_WON;
-            return;
+
+        try {
+            this.board.movePawn(playerId, targetPosition);
+            this.redoStack = []; // Clear redo stack as we're making a new move
+            
+            if (this.isGoalPosition(playerId, targetPosition)) { // Check if player won
+                this.gameState.status = playerId === 1 ? GameStatus.PLAYER_1_WON : GameStatus.PLAYER_2_WON;
+                return;
+            }
+
+            this.switchTurns();
+        } catch (error) {
+            this.history.pop(); // Rollback state save on error
+            throw error;
+        }
+    }
+
+    /**
+     * Undo the last move
+     * @throws GameError if there are no moves to undo
+     */
+    public undo(): void {
+        if (this.history.length === 0) {
+            throw new GameError('No moves to undo');
         }
 
-        // Switch turns
-        this.switchTurns();
+        // Save current state to redo stack before undoing
+        this.redoStack.push(this.saveCurrentState());
+        
+        // Restore previous state
+        const previousState = this.history.pop()!;
+        this.restoreState(previousState);
+    }
+
+    /**
+     * Redo the last undone move
+     * @throws GameError if there are no moves to redo
+     */
+    public redo(): void {
+        if (this.redoStack.length === 0) {
+            throw new GameError('No moves to redo');
+        }
+
+        // Save current state to history before redoing
+        this.history.push(this.saveCurrentState());
+        
+        // Restore redo state
+        const redoState = this.redoStack.pop()!;
+        this.restoreState(redoState);
+    }
+
+    /**
+     * Restore a previous game state
+     */
+    private restoreState(state: GameHistoryState): void {
+        // Restore board state
+        this.board = Board.withPawns(state.board.pawns, this.board.getBoardSize());
+        for (const wall of state.board.walls) {
+            this.board.placeWall(wall);
+        }
+        
+        // Restore game state
+        this.gameState = { ...state.gameState };
+        
+        // Restore remaining walls
+        this.remainingWalls = new Map(state.remainingWalls);
     }
 
     private validatePlayer(id : PlayerID)
@@ -158,7 +235,7 @@ export class Game {
     private hasPathToGoal(playerId: PlayerID): boolean {
         const position = this.board.getPawnPosition(playerId);
         if (!position) return false;
-
+        
         const visited = new Set<string>();
         const queue: Position[] = [position];
         
@@ -222,5 +299,19 @@ export class Game {
      */
     public getRemainingWalls(): Map<PlayerID, number> {
         return new Map(this.remainingWalls);
+    }
+
+    /**
+     * Creates a snapshot of the current game state
+     */
+    private saveCurrentState(): GameHistoryState {
+        return {
+            board: {
+                pawns: new Map(this.board.getPawns()),
+                walls: [...this.board.getWalls()]
+            },
+            gameState: { ...this.gameState },
+            remainingWalls: new Map(this.remainingWalls)
+        };
     }
 } 

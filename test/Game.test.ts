@@ -3,21 +3,23 @@ import { Game, GameError, NoWallsRemainingError, PathBlockedError, WrongTurnErro
 import { Board } from '../src/core/Board';
 import { Position, Wall, DEFAULT_GAME_SIZE, GameStatus } from '../src/types/game';
 
+const PLAYER1_ID = 1;
+const PLAYER2_ID = 2;
+const WALLS_PER_PLAYER = 10;
+
 describe('Game', () => {
   let board: Board;
   let game: Game;
-  const PLAYER1_ID = 1;
-  const PLAYER2_ID = 2;
-  const WALL_PER_PLAYER = 6;
 
   beforeEach(() => {
+
     // Setup a new board with players in starting positions
     const pawnPositions = new Map([
       [PLAYER1_ID, Position.create(0, 4, DEFAULT_GAME_SIZE)],  // Player 1 starts at top center
       [PLAYER2_ID, Position.create(8, 4, DEFAULT_GAME_SIZE)]   // Player 2 starts at bottom center
     ]);
     board = Board.withPawns(pawnPositions);
-    game = new Game(board, WALL_PER_PLAYER);
+    game = new Game(board, WALLS_PER_PLAYER);
   });
 
   describe('player management', () => {
@@ -25,16 +27,20 @@ describe('Game', () => {
       game.addPlayer(PLAYER1_ID);
       game.addPlayer(PLAYER2_ID);
       
-      // Try to place WALL_PER_PLAYER walls
+      // Try to place WALLS_PER_PLAYER walls
       const pos = Position.create(4, 4, DEFAULT_GAME_SIZE);
-      for (let i = 0; i < WALL_PER_PLAYER; i++) {
-        const wall1 = new Wall(Position.create(i, 0, DEFAULT_GAME_SIZE), true);
+      for (let i = 0; i < WALLS_PER_PLAYER; i++) {
+        let p1WallRow = i % DEFAULT_GAME_SIZE
+        let p1WallCol = i >= DEFAULT_GAME_SIZE ? 0 : 3
+        const wall1 = new Wall(Position.create(p1WallRow, p1WallCol, DEFAULT_GAME_SIZE), true);
         expect(() => game.placeWall(PLAYER1_ID, wall1)).to.not.throw();
-        const wall2 = new Wall(Position.create(i, DEFAULT_GAME_SIZE-3, DEFAULT_GAME_SIZE), true);
+        let p2WallRow = i % DEFAULT_GAME_SIZE
+        let p2WallCol = i >= DEFAULT_GAME_SIZE ? DEFAULT_GAME_SIZE - 2 : 5;
+        const wall2 = new Wall(Position.create(p2WallRow, p2WallCol, DEFAULT_GAME_SIZE), true);
         expect(() => game.placeWall(PLAYER2_ID, wall2)).to.not.throw();
       }
 
-      // WALL_PER_PLAYER+1 wall should throw
+      // WALLS_PER_PLAYER+1 wall should throw
       const extraWall = new Wall(pos, true);
       expect(() => game.placeWall(PLAYER1_ID, extraWall))
         .to.throw(NoWallsRemainingError);
@@ -253,6 +259,104 @@ describe('Game', () => {
       game.movePawn(PLAYER2_ID, Position.create(0, 4, DEFAULT_GAME_SIZE));
       
       expect(game.getGameState().status).to.equal(GameStatus.PLAYER_2_WON);
+    });
+  });
+
+  describe('Undo/Redo', () => {
+    beforeEach(() => {
+      game.addPlayer(PLAYER1_ID);
+      game.addPlayer(PLAYER2_ID);
+    });
+
+    it('should throw error when trying to undo with no moves', () => {
+      expect(() => game.undo()).to.throw('No moves to undo');
+    });
+
+    it('should throw error when trying to redo with no undone moves', () => {
+      expect(() => game.redo()).to.throw('No moves to redo');
+    });
+
+    it('should correctly undo and redo a wall placement', () => {
+      const wall = new Wall(Position.create(4, 4, DEFAULT_GAME_SIZE), true);
+      const initialWalls = game.getRemainingWalls().get(PLAYER1_ID);
+      
+      // Place wall
+      game.placeWall(PLAYER1_ID, wall);
+      expect(game.getRemainingWalls().get(PLAYER1_ID)).to.equal(initialWalls! - 1);
+      expect(game.getGameState().currentTurn).to.equal(PLAYER2_ID);
+      
+      // Undo wall placement
+      game.undo();
+      expect(game.getRemainingWalls().get(PLAYER1_ID)).to.equal(initialWalls);
+      expect(game.getGameState().currentTurn).to.equal(PLAYER1_ID);
+      
+      // Redo wall placement
+      game.redo();
+      expect(game.getRemainingWalls().get(PLAYER1_ID)).to.equal(initialWalls! - 1);
+      expect(game.getGameState().currentTurn).to.equal(PLAYER2_ID);
+    });
+
+    it('should correctly undo and redo a pawn move', () => {
+      const startPos = Position.create(0, 4, DEFAULT_GAME_SIZE); // Assuming this is player 1's start position
+      const targetPos = Position.create(1, 4, DEFAULT_GAME_SIZE);
+      
+      // Set initial position
+      board = Board.withPawns(new Map([[PLAYER1_ID, startPos]]));
+      game = new Game(board, WALLS_PER_PLAYER);
+      game.addPlayer(PLAYER1_ID);
+      game.addPlayer(PLAYER2_ID);
+      
+      // Move pawn
+      game.movePawn(PLAYER1_ID, targetPos);
+      expect(game.getBoard().getPawnPosition(PLAYER1_ID)?.equals(targetPos)).to.be.true;
+      expect(game.getGameState().currentTurn).to.equal(PLAYER2_ID);
+      
+      // Undo move
+      game.undo();
+      expect(game.getBoard().getPawnPosition(PLAYER1_ID)?.equals(startPos)).to.be.true;
+      expect(game.getGameState().currentTurn).to.equal(PLAYER1_ID);
+      
+      // Redo move
+      game.redo();
+      expect(game.getBoard().getPawnPosition(PLAYER1_ID)?.equals(targetPos)).to.be.true;
+      expect(game.getGameState().currentTurn).to.equal(PLAYER2_ID);
+    });
+
+    it('should clear redo stack when making a new move', () => {
+      const wall1 = new Wall(Position.create(4, 4, DEFAULT_GAME_SIZE), true);
+      const wall2 = new Wall(Position.create(4, 6, DEFAULT_GAME_SIZE), true);
+      
+      // Place first wall and undo it
+      game.placeWall(PLAYER1_ID, wall1);
+      game.undo();
+      
+      // Place different wall - should clear redo stack
+      game.placeWall(PLAYER1_ID, wall2);
+      
+      // Trying to redo should throw error as redo stack was cleared
+      expect(() => game.redo()).to.throw('No moves to redo');
+    });
+
+    it('should maintain game end state in history', () => {
+      // Setup board with player 1 one move away from goal
+      const almostWinPos = Position.create(7, 4, DEFAULT_GAME_SIZE);
+      const winPos = Position.create(8, 4, DEFAULT_GAME_SIZE);
+      board = Board.withPawns(new Map([[PLAYER1_ID, almostWinPos]]));
+      game = new Game(board, WALLS_PER_PLAYER);
+      game.addPlayer(PLAYER1_ID);
+      game.addPlayer(PLAYER2_ID);
+      
+      // Make winning move
+      game.movePawn(PLAYER1_ID, winPos);
+      expect(game.getGameState().status).to.equal(GameStatus.PLAYER_1_WON);
+      
+      // Undo winning move
+      game.undo();
+      expect(game.getGameState().status).to.equal(GameStatus.IN_PROGRESS);
+      
+      // Redo winning move
+      game.redo();
+      expect(game.getGameState().status).to.equal(GameStatus.PLAYER_1_WON);
     });
   });
 }); 

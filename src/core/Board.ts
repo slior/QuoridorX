@@ -247,6 +247,19 @@ export class Board {
         this.walls.pop();
     }
 
+    /**
+     * Get all pawns on the board
+     */
+    public getPawns(): Map<PlayerID, Position> {
+        return new Map(this.pawns);
+    }
+
+    /**
+     * Get all walls on the board
+     */
+    public getWalls(): Wall[] {
+        return [...this.walls];
+    }
 } 
 
 

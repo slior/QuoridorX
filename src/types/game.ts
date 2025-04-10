@@ -184,4 +184,13 @@ export interface GameEngine {
   isValidMove(move: Move): boolean;
   makeMove(move: Move): boolean;
   getValidMoves(playerId: string): Move[];
+}
+
+export interface GameHistoryState {
+    board: {
+        pawns: Map<PlayerID, Position>;
+        walls: Wall[];
+    };
+    gameState: GameState;
+    remainingWalls: Map<PlayerID, number>;
 } 

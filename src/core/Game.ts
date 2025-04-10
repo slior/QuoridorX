@@ -1,5 +1,5 @@
 import { Board } from './Board';
-import { Position, Wall, PlayerID, DEFAULT_GAME_SIZE, GameState, GameStatus, GameHistoryState } from '../types/game';
+import { Position, Wall, PlayerID, GameState, GameStatus, GameHistoryState } from '../types/game';
 
 export class GameError extends Error {
     constructor(message: string) {

@@ -1,6 +1,6 @@
 # Quoridor Game
 
-A command-line implementation of the classic Quoridor board game. In Quoridor, players race to reach the opposite side of the board while placing walls to hinder their opponent's progress.
+A command shell implementation of the classic Quoridor board game. In Quoridor, players race to reach the opposite side of the board while placing walls to hinder their opponent's progress.
 
 ## Game Description
 

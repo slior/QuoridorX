@@ -3,10 +3,10 @@ import { Position, Wall, PlayerID, DEFAULT_GAME_SIZE } from "../types/game";
 
 
 /**
- * Represents the Quoridor game board
- * (0,0) is the top left.
- * - Pawns can move on the intersections (81 positions)
- * - Walls can be placed between the intersections
+ * Represents the Quoridor game board.
+ * - Origin (0,0) is top left
+ * - Pawns move on intersections (81 positions)
+ * - Walls placed between intersections
  */
 export class Board {
 
@@ -14,6 +14,10 @@ export class Board {
     private pawns: Map<PlayerID, Position>; // Maps player ID to their position
     private walls: Wall[];
 
+    /**
+     * Creates an empty board
+     * @param boardSize - Size of the board (default: DEFAULT_GAME_SIZE)
+     */
     constructor(boardSize: number = DEFAULT_GAME_SIZE) {
         this.boardSize = boardSize;
         this.pawns = new Map<PlayerID, Position>();
@@ -21,9 +25,11 @@ export class Board {
     }
 
     /**
-     * Creates a new board with pawns in specified initial positions
-     * @param pawnPositions Map of player IDs to their initial positions
-     * @param boardSize Optional board size (defaults to DEFAULT_GAME_SIZE)
+     * Creates a board with pawns in initial positions
+     * @param pawnPositions - Map of player IDs to positions
+     * @param boardSize - Size of the board (default: DEFAULT_GAME_SIZE)
+     * @returns New board instance
+     * @throws Error if position board size doesn't match
      */
     static withPawns(pawnPositions: Map<PlayerID, Position>, boardSize: number = DEFAULT_GAME_SIZE): Board {
         const board = new Board(boardSize);
@@ -37,23 +43,25 @@ export class Board {
     }
 
     /**
-     * Get a player's current position
+     * Gets a player's current position
+     * @param playerId - ID of the player
+     * @returns Position of player's pawn, or undefined if not found
      */
     public getPawnPosition(playerId: number): Position | undefined {
         return this.pawns.get(playerId);
     }
 
     /**
-     * Place a wall on the board
+     * Places a wall on the board
+     * @param wall - Wall to place
+     * @throws Error if wall placement is invalid
      */
-    public placeWall(wall: Wall)
-    {
+    public placeWall(wall: Wall): void {
         if (!this.isValidWallPlacement(wall)) {
             throw new Error(`Invalid wall placement: (${wall.position.row}, ${wall.position.col}, ${wall.isHorizontal})`)
         }
 
         this.walls.push(wall)
-
     }
 
     private horizontalWalls() : Wall[] { return this.walls.filter( w => w.isHorizontal) }
@@ -91,15 +99,18 @@ export class Board {
     }
 
     /**
-     * Get the board size
+     * Gets the board size
+     * @returns Size of the board
      */
     public getBoardSize(): number {
         return this.boardSize;
     }
 
     /**
-     * Move a pawn to a new position
-     * @throws Error if the move is invalid
+     * Moves a pawn to a new position
+     * @param playerId - ID of the player moving
+     * @param targetPosition - Position to move to
+     * @throws Error if pawn not found or move invalid
      */
     public movePawn(playerId: PlayerID, targetPosition: Position): void {
         const currentPosition = this.getPawnPosition(playerId);
@@ -202,7 +213,10 @@ export class Board {
     }
 
     /**
-     * Check if there's a wall between two adjacent positions
+     * Checks if a wall exists between positions
+     * @param pos1 - First position
+     * @param pos2 - Second position
+     * @returns True if wall exists between positions
      */
     public isWallBetween(pos1: Position, pos2: Position): boolean {
         // For vertical movement (different rows, same column)
@@ -241,21 +255,23 @@ export class Board {
     }
 
     /**
-     * Remove the last placed wall (used for rollback)
+     * Removes the last placed wall
      */
     public removeLastWall(): void {
         this.walls.pop();
     }
 
     /**
-     * Get all pawns on the board
+     * Gets all pawn positions
+     * @returns Map of player IDs to positions
      */
     public getPawns(): Map<PlayerID, Position> {
         return new Map(this.pawns);
     }
 
     /**
-     * Get all walls on the board
+     * Gets all placed walls
+     * @returns Array of placed walls
      */
     public getWalls(): Wall[] {
         return [...this.walls];

@@ -32,6 +32,10 @@ export class GameEndedError extends GameError {
     }
 }
 
+/**
+ * Manages the game state and rules for a Quoridor game.
+ * Handles player turns, wall placement, pawn movement, and game history.
+ */
 export class Game {
     private board: Board;
     private readonly wallsPerPlayer: number;
@@ -40,6 +44,11 @@ export class Game {
     private history: GameHistoryState[];
     private redoStack: GameHistoryState[];
     
+    /**
+     * Creates a new game instance
+     * @param board - The game board
+     * @param wallsPerPlayer - Number of walls per player (default: 10)
+     */
     constructor(board: Board, wallsPerPlayer: number = 10) {
         this.board = board;
         this.wallsPerPlayer = wallsPerPlayer;
@@ -53,14 +62,17 @@ export class Game {
     }
 
     /**
-     * Get current game state
+     * Gets the current game state
+     * @returns Current game state including turn and status
      */
     public getGameState(): GameState {
         return { ...this.gameState };
     }
 
     /**
-     * Add a player to the game
+     * Adds a player to the game
+     * @param playerId - ID of the player to add
+     * @throws GameError if game already has maximum players
      */
     public addPlayer(playerId: PlayerID) {
         if (this.remainingWalls.size >= 2) {
@@ -70,10 +82,14 @@ export class Game {
     }
 
     /**
-     * Place a wall for a player
+     * Places a wall for a player
+     * @param playerId - ID of the player placing the wall
+     * @param wall - Wall to place
      * @throws NoWallsRemainingError if player has no walls
      * @throws PathBlockedError if wall blocks path to goal
-     * @throws Error if wall placement is invalid
+     * @throws WrongTurnError if not player's turn
+     * @throws GameEndedError if game is over
+     * @throws GameError if player not in game or wall placement invalid
      */
     public placeWall(playerId: PlayerID, wall: Wall): void
     {
@@ -118,7 +134,12 @@ export class Game {
     }
 
     /**
-     * Move a player's pawn
+     * Moves a player's pawn
+     * @param playerId - ID of the player moving
+     * @param targetPosition - Position to move to
+     * @throws WrongTurnError if not player's turn
+     * @throws GameEndedError if game is over
+     * @throws GameError if move invalid
      */
     public movePawn(playerId: PlayerID, targetPosition: Position): void {
         this.validateGameInProgress();
@@ -145,8 +166,8 @@ export class Game {
     }
 
     /**
-     * Undo the last move
-     * @throws GameError if there are no moves to undo
+     * Undoes the last move
+     * @throws GameError if no moves to undo
      */
     public undo(): void {
         if (this.history.length === 0) {
@@ -162,8 +183,8 @@ export class Game {
     }
 
     /**
-     * Redo the last undone move
-     * @throws GameError if there are no moves to redo
+     * Redoes the last undone move
+     * @throws GameError if no moves to redo
      */
     public redo(): void {
         if (this.redoStack.length === 0) {
@@ -288,14 +309,16 @@ export class Game {
     }
 
     /**
-     * Get the game board
+     * Gets the game board
+     * @returns Current game board
      */
     public getBoard(): Board {
         return this.board;
     }
 
     /**
-     * Get the remaining walls for each player
+     * Gets remaining walls for each player
+     * @returns Map of player IDs to their remaining wall count
      */
     public getRemainingWalls(): Map<PlayerID, number> {
         return new Map(this.remainingWalls);

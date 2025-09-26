@@ -21,7 +21,7 @@
 - [x] Implement game history tracking for undo/replay
 
 ## AI Player
-- [ ] Create AI player interface
+- [x] Create AI player interface
 - [ ] Implement basic AI strategy (random valid moves)
 - [ ] Develop intermediate AI using simple heuristics
 - [ ] Implement advanced AI using path-finding and strategy

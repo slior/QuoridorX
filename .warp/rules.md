@@ -26,6 +26,39 @@ This is a TypeScript implementation of the Quoridor board game. The project focu
 - Mock external dependencies in tests
 - Test files should mirror source file structure
 
+### Test File Placement and Organization
+- **All test files must be located under the `./test` directory**
+- Test files should use the `.test.ts` extension (not `.spec.ts`)
+- Test files should reference the corresponding application file using relative imports
+- Maintain directory structure that mirrors the source code organization
+- Use Mocha + Chai testing framework with `describe()` and `it()` structure
+
+**Examples:**
+
+```
+# Source file locations → Test file locations
+src/core/Board.ts        → test/Board.test.ts
+src/core/Game.ts         → test/Game.test.ts
+src/cli/BoardVisualizer.ts → test/cli/BoardVisualizer.test.ts
+src/types/game.ts        → test/types/game.test.ts (if needed)
+src/ai/AIPlayer.ts       → test/ai/AIPlayer.test.ts
+```
+
+**Test Import Pattern:**
+```typescript
+// test/Board.test.ts
+import { expect } from 'chai';
+import { Board } from '../src/core/Board';
+import { Position, Wall } from '../src/types/game';
+
+// test/cli/BoardVisualizer.test.ts  
+import { expect } from 'chai';
+import { BoardVisualizer } from '../../src/cli/BoardVisualizer';
+import { Board } from '../../src/core/Board';
+```
+
+**DO NOT use co-located tests** (e.g., `src/ai/__tests__/` pattern) - this is inconsistent with the project standard. Move any existing co-located tests to the proper `./test` directory structure.
+
 ### File Organization
 - Keep game logic separate from UI concerns
 - Use dependency injection for better testability

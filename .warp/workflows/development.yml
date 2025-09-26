@@ -1,0 +1,59 @@
+name: "Quoridor Development Workflow"
+description: "Common development tasks for the Quoridor game project"
+
+workflows:
+  test:
+    name: "Run Tests"
+    description: "Execute the full test suite"
+    steps:
+      - "npm test"
+    
+  build:
+    name: "Build Project"
+    description: "Compile TypeScript and create executable"
+    steps:
+      - "npm run build"
+    
+  dev:
+    name: "Development Mode"
+    description: "Start development environment with hot reload"
+    steps:
+      - "npm run dev"
+    
+  lint:
+    name: "Lint Code"
+    description: "Check code style and fix issues"
+    steps:
+      - "npm run lint"
+      - "npm run lint:fix"
+    
+  test-watch:
+    name: "Test Watch Mode"
+    description: "Run tests in watch mode during development"
+    steps:
+      - "npm run test:watch"
+      
+  full-check:
+    name: "Full Quality Check"
+    description: "Run complete quality assurance pipeline"
+    steps:
+      - "npm run lint"
+      - "npm run build"
+      - "npm test"
+      
+  game-analysis:
+    name: "Analyze Game Logic"
+    description: "Review game mechanics and validate rules"
+    steps:
+      - "Check board state representation"
+      - "Validate movement algorithms"
+      - "Verify wall placement rules"
+      - "Test AI decision making"
+      
+  debug-game:
+    name: "Debug Game Session"
+    description: "Run game with debugging output"
+    steps:
+      - "npm run debug"
+      - "Check game state transitions"
+      - "Validate player actions"

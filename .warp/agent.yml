@@ -1,0 +1,42 @@
+name: "Quoridor Game Agent"
+description: "AI agent for the Quoridor board game project"
+
+project:
+  name: "Quoridor"
+  type: "game"
+  language: "typescript"
+  description: "A TypeScript implementation of the classic Quoridor board game with AI capabilities"
+  
+  structure:
+    src: "Source code directory containing game logic"
+    test: "Test files for game components"
+    docs: "Documentation and analysis files"
+    bin: "Compiled executable"
+
+context:
+  game_rules: "Quoridor is a strategy board game where players move pawns and place walls to block opponents"
+  tech_stack:
+    - "TypeScript"
+    - "Node.js"
+    - "Jest (testing)"
+  
+  key_components:
+    - "Game board representation"
+    - "Player movement logic"
+    - "Wall placement mechanics"
+    - "AI opponent system"
+    - "Game state management"
+
+capabilities:
+  - "Code analysis and debugging"
+  - "Feature development"
+  - "Test writing and execution"
+  - "Documentation updates"
+  - "Performance optimization"
+  - "Game logic validation"
+
+preferences:
+  code_style: "TypeScript best practices"
+  testing: "Comprehensive unit tests with Jest"
+  documentation: "Clear inline comments and README updates"
+  commit_style: "Conventional commits format"

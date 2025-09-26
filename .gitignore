@@ -4,3 +4,9 @@ dist/
 *.log
 npm-debug.log*
 coverage/
+
+# Warp AI agent files
+.warp/sessions/
+.warp/logs/
+.warp/cache/
+*.warp-session

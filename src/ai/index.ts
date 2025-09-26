@@ -2,4 +2,7 @@
 export { AIPlayer, AIPlayerUtils } from './AIPlayer';
 
 // AI Strategy interfaces and implementations
-export { AIStrategy, RandomStrategy, PathfindingStrategy } from './strategy';
+export { AIStrategy, RandomStrategy, PathfindingStrategy, RandomStrategyOptions } from './strategy';
+
+// Game move provider to bridge strategies and the game
+export { GameMoveProvider } from './GameMoveProvider';

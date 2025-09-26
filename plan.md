@@ -22,7 +22,7 @@
 
 ## AI Player
 - [x] Create AI player interface
-- [ ] Implement basic AI strategy (random valid moves)
+- [x] Implement basic AI strategy (random valid moves)
 - [ ] Develop intermediate AI using simple heuristics
 - [ ] Implement advanced AI using path-finding and strategy
 

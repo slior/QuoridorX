@@ -1,2 +1,2 @@
-export * from './types/game';
-export * from './ai/strategy';
+// Main entry point - run the CLI
+import './cli/index';

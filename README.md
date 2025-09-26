@@ -40,7 +40,53 @@ npm run dev
 
 # Using the global command (if you've run npm link)
 quoridor
+
+# With TypeScript directly during development
+npx ts-node src/index.ts
 ```
+
+## Player Configuration
+
+The game supports both human and AI players. You can configure player types using command-line arguments:
+
+### Command-Line Options
+
+- `--p1=<type>` - Configure Player 1 type (default: human)
+- `--p2=<type>` - Configure Player 2 type (default: human)
+- `--help` - Show help message
+
+### Player Types
+
+- `human` - Human player (interactive)
+- `ai:random` - AI player using random strategy
+- `ai:heuristic` - AI player using goal-oriented heuristic strategy
+
+### Examples
+
+```bash
+# Default: Human vs Human
+quoridor
+
+# Human vs Random AI
+quoridor --p2=ai:random
+
+# Human vs Heuristic AI  
+quoridor --p2=ai:heuristic
+
+# Random AI vs Human
+quoridor --p1=ai:random
+
+# AI vs AI
+quoridor --p1=ai:heuristic --p2=ai:random
+
+# During development with TypeScript
+npx ts-node src/index.ts -- --p2=ai:random
+```
+
+### AI Strategies
+
+- **Random Strategy**: Makes random valid moves from all available options
+- **Heuristic Strategy**: Prioritizes moves that bring the player closer to their goal, with intelligent wall placement considerations
 
 ## Game Commands
 

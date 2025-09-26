@@ -5,6 +5,7 @@ import { createInterface } from 'readline';
 import chalk from 'chalk';
 import { GameStatus } from '../types/game';
 import { PlayerID } from '../types/game';
+import { AIPlayerManager } from './AIPlayerManager';
 
 const QUIT_COMMAND = 'quit'
 const HELP_COMMNAD = 'help'
@@ -14,16 +15,18 @@ export class QuoridorCLI {
     private readonly game: Game;
     private readonly commands: Map<string, Command>;
     private readonly boardVisualizer: BoardVisualizer;
+    private readonly aiManager: AIPlayerManager | undefined;
     private readonly readline = createInterface({
         input: process.stdin,
         output: process.stdout,
         prompt: '' // Initial empty prompt, will be set in updatePromptColor
     });
 
-    constructor(game: Game) {
+    constructor(game: Game, aiManager?: AIPlayerManager) {
         this.game = game;
         this.commands = new Map();
         this.boardVisualizer = new BoardVisualizer(game.getBoard());
+        this.aiManager = aiManager;
         this.updatePromptColor(); // Set initial prompt color
     }
 
@@ -52,6 +55,7 @@ export class QuoridorCLI {
             command.execute(this.game, commandArgs);
             
             console.log(this.boardVisualizer.visualize());
+            
             // Check if game has ended and show status if it has
             const gameState = this.game.getGameState();
             if (gameState.status !== GameStatus.IN_PROGRESS) {
@@ -59,9 +63,14 @@ export class QuoridorCLI {
                 if (statusCommand) {
                     statusCommand.execute(this.game, []);
                 }
-            } else {
-                this.updatePromptColor(); // Update prompt color after each move
+                return; // Don't process AI turns if game is over
             }
+            
+            this.updatePromptColor(); // Update prompt color after each move
+            
+            // Handle AI turns if applicable
+            this.handleAITurns();
+            
         } catch (error: any) {
             console.error(chalk.red(`Error: ${error.message || error}`));
             if (this.game.getGameState().status === GameStatus.IN_PROGRESS)
@@ -109,10 +118,75 @@ export class QuoridorCLI {
 
     }
 
+    /**
+     * Handle AI turns automatically
+     */
+    private handleAITurns(): void {
+        if (!this.aiManager) return;
+        
+        let gameState = this.game.getGameState();
+        
+        // Continue executing AI turns while it's an AI player's turn and game is in progress
+        while (gameState.status === GameStatus.IN_PROGRESS && this.aiManager.isAIPlayer(gameState.currentTurn)) {
+            try {
+                const currentPlayer = gameState.currentTurn;
+                const aiPlayer = this.aiManager.getAIPlayer(currentPlayer);
+                
+                if (aiPlayer) {
+                    // Get the move from AI
+                    const move = aiPlayer.makeMove(this.game);
+                    
+                    // Display AI move
+                    const strategyName = this.aiManager.getStrategyName(currentPlayer);
+                    const moveDescription = this.aiManager.formatMove(move);
+                    console.log(chalk.cyan(`\nAI Player ${currentPlayer} (${strategyName}) plays: ${moveDescription}`));
+                    
+                    // Execute the SAME move that was calculated and displayed
+                    this.aiManager.executeSpecificMove(currentPlayer, move);
+                    
+                    // Show updated board
+                    console.log(this.boardVisualizer.visualize());
+                    
+                    // Update game state for next iteration
+                    gameState = this.game.getGameState();
+                    
+                    // Check if game ended
+                    if (gameState.status !== GameStatus.IN_PROGRESS) {
+                        const statusCommand = this.commands.get('status');
+                        if (statusCommand) {
+                            statusCommand.execute(this.game, []);
+                        }
+                        break;
+                    }
+                    
+                    this.updatePromptColor();
+                    
+                    // Add small delay for better UX in AI vs AI games
+                    if (this.aiManager.isAIPlayer(gameState.currentTurn)) {
+                        // Brief pause between AI moves
+                        const delay = process.env.NODE_ENV === 'test' ? 0 : 1000;
+                        if (delay > 0) {
+                            // Use synchronous delay for better CLI experience
+                            const start = Date.now();
+                            while (Date.now() - start < delay) {
+                                // Busy wait for short delay
+                            }
+                        }
+                    }
+                }
+            } catch (error: any) {
+                console.error(chalk.red(`AI Error: ${error.message || error}`));
+                break;
+            }
+        }
+    }
+
     public start(): void {
-        console.log(chalk.bold('\nWelcome to Quoridor!'));
         console.log('Type "help" to see available commands\n');
         console.log(this.boardVisualizer.visualize());
+        
+        // Handle initial AI turn if game starts with AI player
+        this.handleAITurns();
 
         this.readline.prompt();
 
@@ -120,7 +194,9 @@ export class QuoridorCLI {
             if (line.trim()) {
                 this.executeCommand(line.trim());
             }
-            this.readline.prompt();
+            if (this.game.getGameState().status === GameStatus.IN_PROGRESS) {
+                this.readline.prompt();
+            }
         });
 
         this.readline.on('close', () => {

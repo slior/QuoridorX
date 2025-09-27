@@ -108,6 +108,11 @@ export class BoardAnalyzer {
     private static readonly URGENCY_LINEAR_DECAY_PER_MOVE = 0.02;
     private static readonly URGENCY_MIN = 0;
     private static readonly URGENCY_MAX = 1;
+    private static readonly WIN_PROBABILITY_BLOCKED = 0;
+    private static readonly WIN_PROBABILITY_WITHIN_ONE_MOVE = 0.95;
+    private static readonly WIN_PROBABILITY_BASE = 0.5;
+    private static readonly WIN_PROBABILITY_PATH_DIFFERENCE_WEIGHT = -0.1;
+    private static readonly WIN_PROBABILITY_ENDGAME_BONUS = 0.2;
     /**
      * Evaluate strategic position for a player
      */
@@ -166,103 +171,31 @@ export class BoardAnalyzer {
         };
     }
 
-    // /**
-    //  * Find strategic chokepoints on the board
-    //  */
-    // static findChokePoints(game: Game): ChokepointInfo[] {
-    //     const board = game.getBoard();
-    //     const boardSize = board.getBoardSize();
-    //     const chokepoints: ChokepointInfo[] = [];
-        
-    //     // Analyze each position for chokepoint potential
-    //     for (let row = 1; row < boardSize - 1; row++) {
-    //         for (let col = 1; col < boardSize - 1; col++) {
-    //             const position = Position.create(row, col, boardSize);
-    //             const narrowness = this.calculateNarrowness(board, position);
-                
-    //             if (narrowness > 0.3) { // Potential chokepoint
-    //                 const strategicValue = this.calculateChokepointStrategicValue(
-    //                     game, position, narrowness
-    //                 );
-                    
-    //                 chokepoints.push({
-    //                     position,
-    //                     narrowness,
-    //                     strategicValue
-    //                 });
-    //             }
-    //         }
-    //     }
-        
-    //     // Sort by strategic value (descending)
-    //     return chokepoints.sort((a, b) => b.strategicValue - a.strategicValue);
-    // }
-
-    /**
-     * Evaluate the impact of placing a specific wall
-     */
-    // static evaluateWallPlacement(game: Game, playerId: PlayerID, wall: Wall): WallImpactAnalysis {
-    //     // Temporarily place the wall to analyze impact
-    //     const board = game.getBoard();
-    //     const originalState = game.getGameState();
-        
-    //     try {
-    //         // Simulate wall placement
-    //         game.placeWall(playerId, wall);
-            
-    //         const playerPos = board.getPawnPosition(playerId)!;
-    //         const opponentId = playerId === P1 ? P2 : P1;
-    //         const opponentPos = board.getPawnPosition(opponentId)!;
-            
-    //         // Calculate path impacts
-    //         const playerGoals = this.getPlayerGoals(playerId, board.getBoardSize());
-    //         const opponentGoals = this.getPlayerGoals(opponentId, board.getBoardSize());
-            
-    //         const playerPathAfter = PathfindingUtils.findShortestPath(board, playerPos, playerGoals);
-    //         const opponentPathAfter = PathfindingUtils.findShortestPath(board, opponentPos, opponentGoals);
-            
-    //         // Remove wall to calculate before state
-    //         game.undo();
-            
-    //         const playerPathBefore = PathfindingUtils.findShortestPath(board, playerPos, playerGoals);
-    //         const opponentPathBefore = PathfindingUtils.findShortestPath(board, opponentPos, opponentGoals);
-            
-    //         const playerPathImpact = (playerPathAfter.distance - playerPathBefore.distance);
-    //         const opponentPathImpact = (opponentPathAfter.distance - opponentPathBefore.distance);
-            
-    //         // Calculate strategic value (positive means good for player)
-    //         const strategicValue = opponentPathImpact - playerPathImpact;
-            
-    //         // Risk assessment
-    //         const riskAssessment = this.calculateWallRisk(playerPathImpact, playerPathAfter.distance);
-            
-    //         // Winning potential
-    //         const winningPotential = this.calculateWinningPotential(
-    //             strategicValue, opponentPathAfter.distance, playerPathAfter.distance
-    //         );
-            
-    //         return {
-    //             playerPathImpact,
-    //             opponentPathImpact,
-    //             strategicValue,
-    //             riskAssessment,
-    //             winningPotential
-    //         };
-            
-    //     } catch (error) {
-    //         // If wall placement fails, return negative evaluation
-    //         return {
-    //             playerPathImpact: Infinity,
-    //             opponentPathImpact: 0,
-    //             strategicValue: -1,
-    //             riskAssessment: 1,
-    //             winningPotential: 0
-    //         };
-    //     }
-    // }
-
     /**
      * Compare optimal paths for both players
+     */
+    /**
+     * Compares the shortest path distances to the goal for both players and computes
+     * several normalized metrics describing their relative positions.
+     *
+     * - Calculates the shortest path length (in moves) for both Player 1 and Player 2
+     *   from their current positions to their respective goal rows, using the current board state.
+     * - Computes the "advantage" as a normalized value in [-1, 1], where negative values
+     *   indicate Player 1 is closer to their goal, positive values indicate Player 2 is closer,
+     *   and 0 means both are equidistant.
+     * - Computes "competitiveness" as a value in [0, 1], where 1 means the players are equally close
+     *   to their goals (highly competitive), and 0 means one player is much closer than the other.
+     * - Computes "efficiency" for each player as a value in [0, 1], where 1 means the player is
+     *   at their goal (distance 0), and 0 means the player is as far as possible (relative to the other).
+     *
+     * @param game The current Game instance (board state, pawn positions, etc.)
+     * @returns {PathComparison} An object containing:
+     *   - player1Distance: shortest path length for Player 1 (number of moves, or Infinity if blocked)
+     *   - player2Distance: shortest path length for Player 2 (number of moves, or Infinity if blocked)
+     *   - advantage: normalized difference in path lengths, in [-1, 1]
+     *   - competitiveness: how close the game is, in [0, 1]
+     *   - player1Efficiency: Player 1's efficiency, in [0, 1]
+     *   - player2Efficiency: Player 2's efficiency, in [0, 1]
      */
     static comparePlayerPaths(game: Game): PathComparison {
         const board = game.getBoard();
@@ -307,22 +240,45 @@ export class BoardAnalyzer {
     /**
      * Analyze race conditions between players
      */
+    /**
+     * Analyze whether the current board state constitutes a "race condition" between the two players,
+     * and determine which player is currently favored to win the race to their goal.
+     *
+     * A "race" is defined as a situation where both players have a shortest path to their goal
+     * that is less than or equal to the RACE_DISTANCE_THRESHOLD (i.e., both are close to winning).
+     *
+     * This function computes:
+     *   - isRace: true if both players are within RACE_DISTANCE_THRESHOLD moves of their goal.
+     *   - turnsToWin: the number of turns each player needs to reach their goal, as determined by pathfinding.
+     *     - If it is currently Player 2's turn, their turnsToWin is reduced by 0.5 to reflect that they move first in the race.
+     *   - raceWinner: the PlayerID of the player who is currently favored to win the race (i.e., has fewer turnsToWin),
+     *     or null if the race is tied or not in a race condition.
+     *
+     * @param game - The current Game instance.
+     * @returns {RaceAnalysis} An object containing:
+     *   - isRace: boolean indicating if a race condition exists.
+     *   - turnsToWin: { player1: number, player2: number } with estimated turns to win for each player.
+     *   - raceWinner: PlayerID of the player favored to win the race, or null if tied or not a race.
+     */
     static analyzeRaceCondition(game: Game): RaceAnalysis {
         const comparison = this.comparePlayerPaths(game);
         const gameState = game.getGameState();
         
+        // A race exists if both players are within the race distance threshold
         const isRace = comparison.player1Distance <= BoardAnalyzer.RACE_DISTANCE_THRESHOLD && comparison.player2Distance <= BoardAnalyzer.RACE_DISTANCE_THRESHOLD;
         
+        // Compute the number of turns to win for each player
         const turnsToWin = {
             player1: comparison.player1Distance,
             player2: comparison.player2Distance
         };
         
-        // Adjust for current turn
+        // If it's Player 2's turn, they move first in the race, so subtract 0.5 from their turnsToWin
         if (gameState.currentTurn === P2) {
-            turnsToWin.player2 -= 0.5; // Player 2 moves first
+            turnsToWin.player2 -= 0.5;
         }
         
+        // Determine the race winner (the player with fewer turns to win), or null if tied or not a race
         let raceWinner: PlayerID | null = null;
         if (isRace) {
             if (turnsToWin.player1 < turnsToWin.player2) {
@@ -341,6 +297,34 @@ export class BoardAnalyzer {
 
     /**
      * Analyze positioning stance (offensive/defensive/balanced)
+     */
+    /**
+     * Analyzes the current positioning stance of a player, quantifying their aggression,
+     * wall usage efficiency, and overall stance (offensive, defensive, or balanced).
+     *
+     * This function combines the player's positional advantage (relative path to goal)
+     * and their wall usage to produce a normalized aggression score and a qualitative stance.
+     * It also estimates how efficiently the player is using their walls to gain advantage.
+     *
+     * Aggression is computed as a weighted sum:
+     *   - 60% weight: normalized positional advantage (from -1..1 mapped to 0..1)
+     *   - 40% weight: wall usage rate (fraction of walls used, 0..1)
+     *   - The result is capped at 1.
+     *
+     * Stance is determined by aggression and positional advantage:
+     *   - Offensive: high aggression and positive advantage
+     *   - Defensive: low aggression and negative advantage
+     *   - Balanced: otherwise
+     *
+     * Wall efficiency is the absolute value of positional advantage if any walls have been used,
+     * otherwise 0.
+     *
+     * @param game - The current Game instance.
+     * @param playerId - The PlayerID of the player to analyze.
+     * @returns {PositioningAnalysis} An object containing:
+     *   - stance: 'Offensive' | 'Defensive' | 'Balanced'
+     *   - aggression: number (0..1), higher means more aggressive
+     *   - wallEfficiency: number (0..1), higher means walls are being used to gain advantage
      */
     static analyzePositioning(game: Game, playerId: PlayerID): PositioningAnalysis {
         const gameState = game.getGameState();
@@ -387,47 +371,6 @@ export class BoardAnalyzer {
     }
 
     /**
-     * Evaluate long-term strategic position
-     */
-    static evaluateLongTermPosition(game: Game, playerId: PlayerID): LongTermEvaluation {
-        const evaluation = this.evaluatePosition(game, playerId);
-        const gameState = game.getGameState();
-        
-        // Sustainability (can the player maintain their position)
-        const remainingWalls = game.getRemainingWalls();
-        const wallsRemaining = remainingWalls.get(playerId) || 0;
-        const sustainability = Math.min(
-            BoardAnalyzer.SUSTAINABILITY_MAX,
-            (wallsRemaining / 10) * BoardAnalyzer.SUSTAINABILITY_WALLS_WEIGHT +
-            Math.max(0, 1 - evaluation.urgencyScore) * BoardAnalyzer.SUSTAINABILITY_URGENCY_WEIGHT
-        );
-        
-        // Flexibility (how many options the player has)
-        // Flexibility is inversely related to the player's shortest path length to their goal.
-        // The formula 1 / (1 + pathLength * 0.1) ensures that as the path length increases,
-        // flexibility decreases, but never reaches zero. Multiplying by 0.1 scales the effect,
-        // and Math.min(1, ...) caps the maximum flexibility at 1. If the path is blocked (Infinity),
-        // flexibility is set to 0.
-        const pathLength = evaluation.playerPathLength;
-        const flexibility = pathLength < Infinity ? 
-            Math.min(1, 1 / (1 + pathLength * 0.1)) : 0;
-        
-        // Control potential (ability to influence the game)
-        const controlPotential = Math.min(
-            BoardAnalyzer.CONTROL_POTENTIAL_MAX,
-            evaluation.boardControl * BoardAnalyzer.CONTROL_POTENTIAL_BOARD_CONTROL_WEIGHT +
-            evaluation.territoryControl * BoardAnalyzer.CONTROL_POTENTIAL_TERRITORY_CONTROL_WEIGHT +
-            sustainability * BoardAnalyzer.CONTROL_POTENTIAL_SUSTAINABILITY_WEIGHT
-        );
-        
-        return {
-            sustainability,
-            flexibility,
-            controlPotential
-        };
-    }
-
-    /**
      * Get goal positions for a player
      */
     private static getPlayerGoals(playerId: PlayerID, boardSize: number): Position[] {
@@ -444,27 +387,47 @@ export class BoardAnalyzer {
     /**
      * Calculate positional advantage based on path lengths
      */
+    /**
+     * Calculates the positional advantage for a player based on the difference in shortest path lengths
+     * to the goal between the player and their opponent.
+     *
+     * The result is a normalized value in the range [-1, 1]:
+     *   -  1   : The player has a guaranteed win (opponent cannot reach the goal, i.e., opponentPath === Infinity).
+     *   -  0   : No advantage (both players are equally far from their goals, or both are blocked).
+     *   - -1   : The opponent has a guaranteed win (player cannot reach the goal, i.e., playerPath === Infinity).
+     *   - (−1, 1): Intermediate values indicate the degree of advantage, with positive values favoring the player
+     *              and negative values favoring the opponent. The value is proportional to the negative of the
+     *              path difference divided by the total path length.
+     *
+     * @param pathDifference The difference in path lengths: (playerPath - opponentPath).
+     * @param playerPath The shortest path length from the player's current position to their goal (number of moves, or Infinity if blocked).
+     * @param opponentPath The shortest path length from the opponent's current position to their goal (number of moves, or Infinity if blocked).
+     * @returns A number in [-1, 1] representing the player's positional advantage.
+     *          Positive values mean the player is closer to their goal; negative values mean the opponent is closer.
+     *          Returns 0 if both players are equally far or both are blocked.
+     */
     private static calculatePositionalAdvantage(
         pathDifference: number, 
         playerPath: number, 
         opponentPath: number
     ): number {
         if (playerPath === Infinity && opponentPath === Infinity) {
+            // Both players are blocked; no advantage.
             return 0;
         }
         if (playerPath === Infinity) {
+            // Player is blocked, opponent is not; maximum disadvantage.
             return -1;
         }
         if (opponentPath === Infinity) {
+            // Opponent is blocked, player is not; maximum advantage.
             return 1;
         }
         
         const totalPath = playerPath + opponentPath;
-        // If the total path length is greater than zero, return the normalized negative path difference.
-        // This gives a value between -1 and 1 indicating positional advantage:
-        //   - A positive value means the player is closer to their goal than the opponent.
-        //   - A negative value means the opponent is closer.
-        // If both paths are zero, return 0 (no advantage).
+        // If both path lengths are zero, treat as no advantage.
+        // Otherwise, normalize the negative path difference by the total path length.
+        // This ensures the value is in [-1, 1] and positive means player is closer.
         return totalPath > 0 ? -pathDifference / totalPath : 0;
     }
 
@@ -499,22 +462,44 @@ export class BoardAnalyzer {
     /**
      * Calculate winning probability
      */
+    /**
+     * Estimates the probability that the player will win from the current board state.
+     *
+     * The probability is computed heuristically based on:
+     *   - The difference in shortest path lengths to the goal between the player and the opponent.
+     *   - The player's own shortest path length to the goal.
+     *   - Whether the game is in an endgame state.
+     *
+     * Calculation details:
+     *   - If the player's path to the goal is blocked (Infinity), returns 0 (no chance to win).
+     *   - If the player is within 1 move of winning, returns 0.95 (almost certain win).
+     *   - Otherwise, starts from a base probability of 0.5 (even odds), then:
+     *       - Adjusts by -0.1 times the pathDifference (so being closer increases probability).
+     *       - If isEndgame is true, adds 0.2 to the probability (endgame advantage).
+     *   - The result is clamped to the [0, 1] range.
+     *
+     * @param pathDifference - The difference in shortest path lengths (playerPath - opponentPath).
+     *   Negative values mean the player is closer to their goal.
+     * @param playerPath - The player's shortest path length to their goal (number of moves, or Infinity if blocked).
+     * @param isEndgame - True if the game is in an endgame state.
+     * @returns A number between 0 and 1 representing the estimated probability of the player winning.
+     */
     private static calculateWinningProbability(
         pathDifference: number, 
         playerPath: number, 
         isEndgame: boolean
     ): number {
         if (playerPath === Infinity) {
-            return 0;
+            return BoardAnalyzer.WIN_PROBABILITY_BLOCKED;
         }
         if (playerPath <= 1) {
-            return 0.95;
+            return BoardAnalyzer.WIN_PROBABILITY_WITHIN_ONE_MOVE;
         }
         
-        let baseProbability = 0.5 + (pathDifference * -0.1);
+        let baseProbability = BoardAnalyzer.WIN_PROBABILITY_BASE + (pathDifference * BoardAnalyzer.WIN_PROBABILITY_PATH_DIFFERENCE_WEIGHT);
         
         if (isEndgame) {
-            baseProbability += 0.2;
+            baseProbability += BoardAnalyzer.WIN_PROBABILITY_ENDGAME_BONUS;
         }
         
         return Math.max(0, Math.min(1, baseProbability));
@@ -562,64 +547,4 @@ export class BoardAnalyzer {
         return Math.min(BoardAnalyzer.URGENCY_MAX, urgency);
     }
 
-    // /**
-    //  * Calculate narrowness of a position (chokepoint detection)
-    //  */
-    // private static calculateNarrowness(board: any, position: Position): number {
-    //     // Simplified narrowness calculation
-    //     // In a full implementation, this would analyze surrounding walls and passages
-    //     return 0.2; // Placeholder
-    // }
-
-    // /**
-    //  * Calculate strategic value of a chokepoint
-    //  */
-    // private static calculateChokepointStrategicValue(
-    //     game: Game, 
-    //     position: Position, 
-    //     narrowness: number
-    // ): number {
-    //     // Simple strategic value based on position centrality and narrowness
-    //     const board = game.getBoard();
-    //     const boardSize = board.getBoardSize();
-    //     const centerDistance = Math.abs(position.row - boardSize/2) + 
-    //                           Math.abs(position.col - boardSize/2);
-    //     const centrality = Math.max(0, 1 - centerDistance / boardSize);
-        
-    //     return narrowness * 0.6 + centrality * 0.4;
-    // }
-
-    // /**
-    //  * Calculate wall placement risk
-    //  */
-    // private static calculateWallRisk(playerPathImpact: number, newPlayerPath: number): number {
-    //     if (playerPathImpact <= 0) {
-    //         return 0; // No risk if wall doesn't hurt player
-    //     }
-        
-    //     if (newPlayerPath === Infinity) {
-    //         return 1; // Maximum risk if player is blocked
-    //     }
-        
-    //     return Math.min(1, playerPathImpact / 10);
-    // }
-
-    // /**
-    //  * Calculate winning potential of a wall placement
-    //  */
-    // private static calculateWinningPotential(
-    //     strategicValue: number,
-    //     opponentPathAfter: number,
-    //     playerPathAfter: number
-    // ): number {
-    //     if (opponentPathAfter === Infinity) {
-    //         return 1; // Maximum potential if opponent is blocked
-    //     }
-        
-    //     const pathAdvantage = opponentPathAfter - playerPathAfter;
-    //     return Math.max(0, Math.min(1, 
-    //         strategicValue * 0.1 + 
-    //         Math.max(0, pathAdvantage) * 0.05
-    //     ));
-    // }
 }

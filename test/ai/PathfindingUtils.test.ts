@@ -149,20 +149,6 @@ describe('PathfindingUtils', () => {
             expect(isBlocked).to.be.false;
         });
 
-        // it('should validate entire path for wall obstacles', () => {
-        //     const path = [
-        //         Position.create(0, 4, 9),
-        //         Position.create(1, 4, 9),
-        //         Position.create(2, 4, 9),
-        //         Position.create(3, 4, 9)
-        //     ];
-            
-        //     // Block path at position 1->2
-        //     board.placeWall(new Wall(Position.create(1, 4, 9), true));
-            
-        //     const isValid = PathfindingUtils.isPathValid(board, path);
-        //     expect(isValid).to.be.false;
-        // });
     });
 
     describe('Distance calculation utilities', () => {
@@ -252,22 +238,5 @@ describe('PathfindingUtils', () => {
             expect(endTime - startTime).to.be.lessThan(100); // Less than 100ms
         });
 
-        // it('should handle complex board states efficiently', () => {
-        //     const start = Position.create(0, 4, 9);
-        //     const goals = [Position.create(8, 4, 9)];
-            
-        //     // Add multiple walls creating a maze-like scenario
-        //     for (let i = 1; i < 8; i += 2) {
-        //         board.placeWall(new Wall(Position.create(i, 2, 9), true));
-        //         board.placeWall(new Wall(Position.create(i, 6, 9), true));
-        //     }
-            
-        //     const startTime = Date.now();
-        //     const result = PathfindingUtils.findOptimalPath(board, start, goals);
-        //     const endTime = Date.now();
-            
-        //     expect(result.found).to.be.true;
-        //     expect(endTime - startTime).to.be.lessThan(200); // Less than 200ms for complex case
-        // });
     });
 });

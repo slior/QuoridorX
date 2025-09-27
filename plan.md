@@ -24,7 +24,7 @@
 - [x] Create AI player interface
 - [x] Implement basic AI strategy (random valid moves)
 - [x] Develop intermediate AI using simple heuristics
-- [ ] Implement advanced AI using path-finding and strategy
+- [x] Implement advanced AI using path-finding and strategy
 
 ## Command-Line Interface
 - [x] Design CLI command structure

@@ -11,7 +11,8 @@
     "pretest": "tsc",
   
     "test": "mocha 'test/**/*.ts' --require ts-node/register",
-    "coverage": "c8 mocha 'test/**/*.ts' --require ts-node/register"
+    "test:watch": "mocha --watch --require ts-node/register --extension ts 'test/**/*.ts' --watch-files 'src/**/*.ts' --watch-files 'test/**/*.ts' --watch-ignore 'dist/**' --watch-ignore 'node_modules/**'"
+    , "coverage": "c8 mocha 'test/**/*.ts' --require ts-node/register"
   },
   "keywords": [],
   "author": "",

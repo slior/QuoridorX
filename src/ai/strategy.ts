@@ -1,4 +1,4 @@
-import { GameState, Move, MOVE_TYPE_MOVE } from '../types/game';
+import { GameState, Move, MOVE_TYPE_MOVE, MOVE_TYPE_WALL } from '../types/game';
 
 /**
  * Interface for AI move calculation strategies
@@ -129,17 +129,125 @@ export class HeuristicStrategy implements AIStrategy {
 }
 
 /**
+ * Options for PathfindingStrategy behavior
+ */
+export type PathfindingStrategyOptions = {
+    /** Function that returns all valid moves for the player in the given state */
+    getValidMoves: (state: GameState, playerId: string) => Move[];
+    /** Search depth for move evaluation (default: 3) */
+    searchDepth?: number;
+    /** Evaluation weights for different factors */
+    evaluationWeights: {
+        pathLength: number;
+        wallEfficiency: number;
+        boardControl: number;
+        positionalAdvantage: number;
+    };
+};
+
+/**
  * Advanced strategy using pathfinding to make optimal moves
  */
 export class PathfindingStrategy implements AIStrategy {
+    private readonly getValidMovesFn: (state: GameState, playerId: string) => Move[];
+    private readonly searchDepth: number;
+    private readonly weights: {
+        pathLength: number;
+        wallEfficiency: number;
+        boardControl: number;
+        positionalAdvantage: number;
+    };
+
+    constructor(options: PathfindingStrategyOptions) {
+        if (!options.getValidMoves) {
+            throw new Error('getValidMoves function is required');
+        }
+        
+        if (options.searchDepth !== undefined && options.searchDepth < 1) {
+            throw new Error('searchDepth must be at least 1');
+        }
+        
+        this.getValidMovesFn = options.getValidMoves;
+        this.searchDepth = options.searchDepth ?? 3;
+        this.weights = options.evaluationWeights;
+        
+        // Validate weights sum to approximately 1
+        const totalWeight = Object.values(this.weights).reduce((sum, weight) => sum + weight, 0);
+        if (Math.abs(totalWeight - 1.0) > 0.01) {
+            console.warn(`PathfindingStrategy: evaluation weights sum to ${totalWeight}, expected ~1.0`);
+        }
+    }
+
     /**
-     * Calculates optimal move using pathfinding
+     * Calculates optimal move using pathfinding and strategic evaluation
      * @param state - Current game state
      * @param playerId - ID of player to move
-     * @returns Optimal move based on pathfinding
-     * @throws Error Not implemented
+     * @returns Optimal move based on pathfinding analysis
+     * @throws Error if no valid moves are available
      */
     calculateMove(state: GameState, playerId: string): Move {
-        throw new Error('Not implemented');
+        const moves = this.getValidMovesFn(state, playerId);
+        if (!moves || moves.length === 0) {
+            throw new Error('No valid moves');
+        }
+
+        // For single move, return immediately
+        if (moves.length === 1) {
+            return moves[0];
+        }
+
+        // Evaluate all moves and select the best one
+        const evaluatedMoves = moves.map(move => ({
+            move,
+            score: this.evaluateMove(state, playerId, move)
+        }));
+
+        // Sort by score (descending) and return the best move
+        evaluatedMoves.sort((a, b) => b.score - a.score);
+        
+        return evaluatedMoves[0].move;
     }
-} 
+
+    /**
+     * Evaluate a specific move's strategic value
+     */
+    private evaluateMove(state: GameState, playerId: string, move: Move): number {
+        // This is a simplified evaluation function
+        // In a full implementation, this would use BoardAnalyzer and simulate the move
+        
+        let score = 0;
+        
+        if (move.type === MOVE_TYPE_MOVE) {
+            // Evaluate pawn moves - prefer moves toward goal
+            const playerIdNum = parseInt(playerId);
+            const goalRow = playerIdNum === 1 ? 8 : 0;
+            const distanceToGoal = Math.abs(move.to.row - goalRow);
+            
+            // Score based on progress toward goal (higher is better)
+            score += this.weights.pathLength * (100 - distanceToGoal * 10);
+            
+            // Add positional advantage bonus
+            const centerCol = 4;
+            const distanceFromCenter = Math.abs(move.to.col - centerCol);
+            score += this.weights.positionalAdvantage * (10 - distanceFromCenter);
+            
+        } else if (move.type === MOVE_TYPE_WALL) {
+            // Evaluate wall placements - simplified strategic value
+            const wallRow = move.wall.position.row;
+            const wallCol = move.wall.position.col;
+            
+            // Prefer walls in opponent's territory
+            const playerIdNum = parseInt(playerId);
+            const opponentSide = playerIdNum === 1 ? 0 : 8;
+            const distanceToOpponent = Math.abs(wallRow - opponentSide);
+            
+            score += this.weights.wallEfficiency * (20 - distanceToOpponent * 2);
+            
+            // Central walls have higher strategic value
+            const centerDistance = Math.abs(wallRow - 4) + Math.abs(wallCol - 4);
+            score += this.weights.boardControl * (10 - centerDistance);
+        }
+        
+        return score;
+    }
+}

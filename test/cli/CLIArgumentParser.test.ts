@@ -123,8 +123,9 @@ describe('CLIArgumentParser', () => {
             expect(() => CLIArgumentParser.parse(['--p2=ai:unknown'])).to.throw('Unknown AI strategy \'unknown\'');
         });
 
-        it('should throw error for pathfinding strategy (not implemented)', () => {
-            expect(() => CLIArgumentParser.parse(['--p1=ai:pathfinding'])).to.throw('Unknown AI strategy \'pathfinding\'');
+        it('should accept pathfinding strategy (implemented)', () => {
+            const config = CLIArgumentParser.parse(['--p1=ai:pathfinding']);
+            expect(config.player1.strategy).to.equal('pathfinding');
         });
 
         it('should throw error for malformed AI specification', () => {
@@ -140,7 +141,7 @@ describe('CLIArgumentParser', () => {
                 CLIArgumentParser.parse(['--p1=ai:invalid']);
                 expect.fail('Should have thrown error');
             } catch (error: any) {
-                expect(error.message).to.include('Available strategies: random, heuristic');
+                expect(error.message).to.include('Available strategies: random, heuristic, pathfinding');
             }
         });
 
@@ -149,7 +150,7 @@ describe('CLIArgumentParser', () => {
                 CLIArgumentParser.parse(['--p1=robot']);
                 expect.fail('Should have thrown error');
             } catch (error: any) {
-                expect(error.message).to.include('Valid types: human, ai:random, ai:heuristic');
+                expect(error.message).to.include('Valid types: human, ai:random, ai:heuristic, ai:pathfinding');
             }
         });
     });
@@ -161,9 +162,9 @@ describe('CLIArgumentParser', () => {
             expect(help).to.include('Usage: quoridor [OPTIONS]');
             expect(help).to.include('--p1=<type>');
             expect(help).to.include('--p2=<type>');
-            expect(help).to.include('human, ai:random, ai:heuristic');
+            expect(help).to.include('human, ai:random, ai:heuristic, ai:pathfinding');
             expect(help).to.include('Examples:');
-            expect(help).to.not.include('pathfinding');
+            expect(help).to.include('pathfinding');
         });
     });
 

@@ -160,10 +160,10 @@ describe('AIPlayerManager', () => {
             const config: PlayerConfig = {
                 id: P1,
                 type: 'ai',
-                strategy: 'pathfinding' as any // This should not be supported
+                strategy: 'nonexistent' as any // This should not be supported
             };
             
-            expect(() => aiManager.createPlayer(config)).to.throw('Unsupported AI strategy: pathfinding');
+            expect(() => aiManager.createPlayer(config)).to.throw('Unsupported AI strategy: nonexistent');
         });
 
         it('should handle AI move execution errors gracefully', () => {

@@ -12,6 +12,112 @@ This is a TypeScript implementation of the Quoridor board game. The project focu
 - Maintain test coverage above 80%
 - Use conventional commit format for all commits
 
+### Cleanup Refactoring (LLM Agent Guidance)
+
+When improving readability and maintainability without altering behavior, apply these rules consistently:
+
+1) Eliminate magic numbers and strings
+- Define named constants for thresholds, weights, caps, and fixed return values.
+- Prefer `private static readonly` on the owning class; if cross-cutting, use a shared constants/enums module.
+
+2) Prefer enums to string unions for state/category values
+- Replace repeated string literals (e.g., 'offensive') with a typed `enum`.
+
+3) Use domain constants for identifiers
+- Replace raw IDs (e.g., `1`, `2`) with domain constants like `P1`, `P2`.
+
+4) Extract decision logic into private helpers
+- Move multi-branch decisions or formulas into small, well-named `private static` methods.
+
+5) Normalize and clamp using named constants
+- Introduce `*_MAX`, `*_MIN`, `*_BASE`, `*_WEIGHT`, `*_THRESHOLD` constants to document intent.
+
+6) Keep names descriptive and consistent
+- Constants: `UPPER_SNAKE_CASE`; Enums: `PascalCase`; Methods/vars: `camelCase`.
+
+7) Update all call sites atomically and run tests/lints
+- After refactors, ensure no lingering literals remain; run lints and tests.
+
+Concrete examples (Good code)
+
+Magic numbers → constants (thresholds)
+```ts
+// Before
+const isRace = p1 <= 4 && p2 <= 4;
+
+// After
+class BoardAnalyzer {
+  private static readonly RACE_DISTANCE_THRESHOLD = 4;
+  static isRaceCondition(p1: number, p2: number): boolean {
+    return p1 <= BoardAnalyzer.RACE_DISTANCE_THRESHOLD &&
+           p2 <= BoardAnalyzer.RACE_DISTANCE_THRESHOLD;
+  }
+}
+```
+
+String literals → enum
+```ts
+// Before
+interface PositioningAnalysis { stance: 'offensive' | 'defensive' | 'balanced'; }
+let stance: 'offensive' | 'defensive' | 'balanced' = 'balanced';
+
+// After
+export enum Stance { Offensive = 'offensive', Defensive = 'defensive', Balanced = 'balanced' }
+interface PositioningAnalysis { stance: Stance; }
+let stance: Stance = Stance.Balanced;
+```
+
+Raw IDs → domain constants
+```ts
+// Before
+const opponentId = playerId === 1 ? 2 : 1;
+
+// After
+import { P1, P2 } from '../types/game';
+const opponentId = playerId === P1 ? P2 : P1;
+```
+
+Inline decision → private helper
+```ts
+// Before
+let stance: Stance;
+if (aggression > 0.6 && advantage > 0) stance = Stance.Offensive;
+else if (aggression < 0.4 && advantage < 0) stance = Stance.Defensive;
+else stance = Stance.Balanced;
+
+// After
+private static determineStance(aggression: number, advantage: number): Stance {
+  if (aggression > BoardAnalyzer.OFFENSIVE_AGGRESSION_THRESHOLD && advantage > 0) return Stance.Offensive;
+  if (aggression < BoardAnalyzer.DEFENSIVE_AGGRESSION_THRESHOLD && advantage < 0) return Stance.Defensive;
+  return Stance.Balanced;
+}
+const stance = BoardAnalyzer.determineStance(aggression, positionalAdvantage);
+```
+
+Weights and caps → named constants
+```ts
+// Before
+const aggression = Math.min(1, normAdv * 0.6 + wallUsage * 0.4);
+
+// After
+private static readonly AGGRESSION_MAX = 1;
+private static readonly AGGRESSION_POSITIONAL_ADVANTAGE_WEIGHT = 0.6;
+private static readonly AGGRESSION_WALL_USAGE_WEIGHT = 0.4;
+const aggression = Math.min(
+  BoardAnalyzer.AGGRESSION_MAX,
+  normAdv * BoardAnalyzer.AGGRESSION_POSITIONAL_ADVANTAGE_WEIGHT +
+  wallUsage * BoardAnalyzer.AGGRESSION_WALL_USAGE_WEIGHT
+);
+```
+
+LLM agent checklist (apply in this order)
+- Search for repeated literals and replace with named constants/enums.
+- Extract complex or duplicated logic into private helpers.
+- Replace raw identifiers with domain constants.
+- Add/adjust imports for new enums/constants.
+- Keep names descriptive; group related constants near the logic they govern.
+- Run lints and tests; update any failing references.
+
 ### Game Logic Rules
 - All game state changes must be immutable
 - Validate all moves according to official Quoridor rules

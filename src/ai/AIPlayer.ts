@@ -1,4 +1,4 @@
-import { PlayerID, Move } from '../types/game';
+import { PlayerID, Move, P1, P2 } from '../types/game';
 import { Game } from '../core/Game';
 import { AIStrategy } from './strategy';
 
@@ -68,8 +68,8 @@ export class AIPlayerUtils {
      * @throws Error if the AI player configuration is invalid
      */
     static validateAIPlayer(aiPlayer: AIPlayer): void {
-        if (!aiPlayer.playerId || (aiPlayer.playerId !== 1 && aiPlayer.playerId !== 2)) {
-            throw new Error(`Invalid AI player ID: ${aiPlayer.playerId} (must be 1 or 2)`);
+        if (!aiPlayer.playerId || (aiPlayer.playerId !== P1 && aiPlayer.playerId !== P2)) {
+            throw new Error(`Invalid AI player ID: ${aiPlayer.playerId} (must be ${P1} or ${P2})`);
         }
         
         if (!aiPlayer.strategy) {

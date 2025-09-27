@@ -1,7 +1,7 @@
 import { Game } from '../core/Game';
 import { PlayerID, Move, MOVE_TYPE_MOVE, MOVE_TYPE_WALL } from '../types/game';
 import { AIPlayer } from '../ai/AIPlayer';
-import { RandomStrategy, HeuristicStrategy } from '../ai/strategy';
+import { RandomStrategy, HeuristicStrategy, PathfindingStrategy } from '../ai/strategy';
 import { GameMoveProvider } from '../ai/GameMoveProvider';
 import { PlayerConfig } from './CLIArgumentParser';
 
@@ -73,6 +73,20 @@ export class AIPlayerManager {
                 case 'heuristic':
                     strategy = new HeuristicStrategy({ getValidMoves: moveProvider });
                     strategyName = 'Heuristic';
+                    break;
+                
+                case 'pathfinding':
+                    strategy = new PathfindingStrategy({ 
+                        getValidMoves: moveProvider,
+                        searchDepth: 3,
+                        evaluationWeights: {
+                            pathLength: 0.4,
+                            wallEfficiency: 0.3,
+                            boardControl: 0.2,
+                            positionalAdvantage: 0.1
+                        }
+                    });
+                    strategyName = 'Pathfinding';
                     break;
                 
                 default:

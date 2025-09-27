@@ -3,7 +3,7 @@ import { PlayerID } from '../types/game';
 export interface PlayerConfig {
     id: PlayerID;
     type: 'human' | 'ai';
-    strategy?: 'random' | 'heuristic';
+    strategy?: 'random' | 'heuristic' | 'pathfinding';
 }
 
 export interface GameConfig {
@@ -19,8 +19,8 @@ export class ArgumentValidationError extends Error {
 }
 
 export class CLIArgumentParser {
-    private static readonly AVAILABLE_STRATEGIES = ['random', 'heuristic'];
-    private static readonly VALID_PLAYER_TYPES = ['human', 'ai:random', 'ai:heuristic'];
+    private static readonly AVAILABLE_STRATEGIES = ['random', 'heuristic', 'pathfinding'];
+    private static readonly VALID_PLAYER_TYPES = ['human', 'ai:random', 'ai:heuristic', 'ai:pathfinding'];
 
     /**
      * Parse command-line arguments and return game configuration
@@ -75,7 +75,7 @@ export class CLIArgumentParser {
             return {
                 id: playerId,
                 type: 'ai',
-                strategy: strategy as 'random' | 'heuristic'
+                strategy: strategy as 'random' | 'heuristic' | 'pathfinding'
             };
         }
 
@@ -95,8 +95,8 @@ export class CLIArgumentParser {
         return `Usage: quoridor [OPTIONS]
 
 Options:
-  --p1=<type>     Player 1 type: human, ai:random, ai:heuristic (default: human)
-  --p2=<type>     Player 2 type: human, ai:random, ai:heuristic (default: human)
+  --p1=<type>     Player 1 type: human, ai:random, ai:heuristic, ai:pathfinding (default: human)
+  --p2=<type>     Player 2 type: human, ai:random, ai:heuristic, ai:pathfinding (default: human)
   --help          Show this help message
 
 Examples:
@@ -108,6 +108,7 @@ Examples:
 
 Available AI Strategies:
   random      - Makes random valid moves
-  heuristic   - Prioritizes moves toward the goal`;
+  heuristic   - Prioritizes moves toward the goal
+  pathfinding - Advanced AI using pathfinding algorithms for optimal play`;
     }
 }

@@ -60,6 +60,7 @@ The game supports both human and AI players. You can configure player types usin
 - `human` - Human player (interactive)
 - `ai:random` - AI player using random strategy
 - `ai:heuristic` - AI player using goal-oriented heuristic strategy
+- `ai:pathfinding` - AI player using advanced pathfinding algorithms for optimal play
 
 ### Examples
 
@@ -73,20 +74,30 @@ quoridor --p2=ai:random
 # Human vs Heuristic AI  
 quoridor --p2=ai:heuristic
 
+# Human vs Pathfinding AI (most challenging)
+quoridor --p2=ai:pathfinding
+
 # Random AI vs Human
 quoridor --p1=ai:random
 
 # AI vs AI
 quoridor --p1=ai:heuristic --p2=ai:random
 
+# Advanced AI vs Advanced AI
+quoridor --p1=ai:pathfinding --p2=ai:pathfinding
+
 # During development with TypeScript
 npx ts-node src/index.ts -- --p2=ai:random
+
+# Test advanced pathfinding AI during development
+npx ts-node src/index.ts -- --p2=ai:pathfinding
 ```
 
 ### AI Strategies
 
 - **Random Strategy**: Makes random valid moves from all available options
-- **Heuristic Strategy**: Prioritizes moves that bring the player closer to their goal, with intelligent wall placement considerations
+- **Heuristic Strategy**: Prioritizes moves that bring the player closer to their goal, with intelligent wall placement considerations  
+- **Pathfinding Strategy**: Advanced AI using BFS/A* pathfinding algorithms to find optimal paths, strategic board analysis, and sophisticated move evaluation for competitive gameplay
 
 ## Game Commands
 

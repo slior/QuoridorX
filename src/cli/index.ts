@@ -88,7 +88,20 @@ function getPlayerDescription(playerConfig: any): string {
     if (playerConfig.type === 'human') {
         return 'Human';
     } else {
-        const strategyName = playerConfig.strategy === 'random' ? 'Random' : 'Heuristic';
+        let strategyName = 'Unknown';
+        switch (playerConfig.strategy) {
+            case 'random':
+                strategyName = 'Random';
+                break;
+            case 'heuristic':
+                strategyName = 'Heuristic';
+                break;
+            case 'pathfinding':
+                strategyName = 'Pathfinding';
+                break;
+            default:
+                strategyName = 'Unknown';
+        }
         return `AI (${strategyName} Strategy)`;
     }
 }

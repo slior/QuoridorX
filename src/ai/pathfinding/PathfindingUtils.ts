@@ -28,6 +28,28 @@ export class PathfindingUtils {
     /**
      * Find shortest path using BFS (Breadth-First Search)
      */
+    /**
+     * Finds the shortest path from a starting position to any of the specified goal positions
+     * on the given board using the Breadth-First Search (BFS) algorithm.
+     *
+     * @param board - The Board instance representing the current game state.
+     * @param start - The starting Position from which to search for a path.
+     * @param goals - An array of Position objects representing valid goal destinations.
+     * @returns {PathfindingResult} An object containing:
+     *   - found: true if a path to any goal exists, false otherwise.
+     *   - distance: the number of steps in the shortest path, or Infinity if no path exists.
+     *   - path: an array of Position objects representing the shortest path from start to goal,
+     *           including both endpoints. If no path is found, this array is empty.
+     *
+     * @throws {Error} If the start or any goal position is invalid on the board.
+     *
+     * The function performs the following steps:
+     *   1. Validates that the goals array is not empty.
+     *   2. Validates that the start and all goal positions are valid on the board.
+     *   3. If the start position is already at any goal, returns a trivial path.
+     *   4. Uses BFS to explore the board, tracking visited positions to avoid cycles.
+     *   5. Returns the shortest path to any goal if found, or indicates failure otherwise.
+     */
     static findShortestPath(board: Board, start: Position, goals: Position[]): PathfindingResult {
         if (goals.length === 0) {
             return { found: false, distance: Infinity, path: [] };
@@ -49,7 +71,6 @@ export class PathfindingUtils {
             return { found: true, distance: 0, path: [start] };
         }
 
-        const boardSize = board.getBoardSize();
         const visited = new Set<string>();
         const queue: { position: Position; distance: number; path: Position[] }[] = [];
         
@@ -87,99 +108,99 @@ export class PathfindingUtils {
         return { found: false, distance: Infinity, path: [] };
     }
 
-    /**
-     * Find optimal path using A* algorithm
-     */
-    static findOptimalPath(board: Board, start: Position, goals: Position[]): PathfindingResult {
-        if (goals.length === 0) {
-            return { found: false, distance: Infinity, path: [] };
-        }
+    // /**
+    //  * Find optimal path using A* algorithm
+    //  */
+    // static findOptimalPath(board: Board, start: Position, goals: Position[]): PathfindingResult {
+    //     if (goals.length === 0) {
+    //         return { found: false, distance: Infinity, path: [] };
+    //     }
 
-        // Validate positions
-        if (!this.isValidPosition(board, start)) {
-            throw new Error(`Invalid start position: (${start.row}, ${start.col})`);
-        }
+    //     // Validate positions
+    //     if (!this.isValidPosition(board, start)) {
+    //         throw new Error(`Invalid start position: (${start.row}, ${start.col})`);
+    //     }
         
-        for (const goal of goals) {
-            if (!this.isValidPosition(board, goal)) {
-                throw new Error(`Invalid goal position: (${goal.row}, ${goal.col})`);
-            }
-        }
+    //     for (const goal of goals) {
+    //         if (!this.isValidPosition(board, goal)) {
+    //             throw new Error(`Invalid goal position: (${goal.row}, ${goal.col})`);
+    //         }
+    //     }
 
-        // Check if start is already at goal
-        if (goals.some(goal => start.equals(goal))) {
-            return { found: true, distance: 0, path: [start] };
-        }
+    //     // Check if start is already at goal
+    //     if (goals.some(goal => start.equals(goal))) {
+    //         return { found: true, distance: 0, path: [start] };
+    //     }
 
-        const openSet: PathNode[] = [];
-        const closedSet = new Set<string>();
+    //     const openSet: PathNode[] = [];
+    //     const closedSet = new Set<string>();
         
-        const startNode: PathNode = {
-            position: start,
-            gCost: 0,
-            hCost: this.minDistanceToGoals(start, goals),
-            fCost: 0
-        };
-        startNode.fCost = startNode.gCost + startNode.hCost;
+    //     const startNode: PathNode = {
+    //         position: start,
+    //         gCost: 0,
+    //         hCost: this.minDistanceToGoals(start, goals),
+    //         fCost: 0
+    //     };
+    //     startNode.fCost = startNode.gCost + startNode.hCost;
         
-        openSet.push(startNode);
+    //     openSet.push(startNode);
 
-        while (openSet.length > 0) {
-            // Find node with lowest fCost
-            let currentIndex = 0;
-            for (let i = 1; i < openSet.length; i++) {
-                if (openSet[i].fCost < openSet[currentIndex].fCost) {
-                    currentIndex = i;
-                }
-            }
+    //     while (openSet.length > 0) {
+    //         // Find node with lowest fCost
+    //         let currentIndex = 0;
+    //         for (let i = 1; i < openSet.length; i++) {
+    //             if (openSet[i].fCost < openSet[currentIndex].fCost) {
+    //                 currentIndex = i;
+    //             }
+    //         }
             
-            const current = openSet.splice(currentIndex, 1)[0];
-            closedSet.add(this.positionKey(current.position));
+    //         const current = openSet.splice(currentIndex, 1)[0];
+    //         closedSet.add(this.positionKey(current.position));
 
-            // Check if we reached any goal
-            if (goals.some(goal => current.position.equals(goal))) {
-                return {
-                    found: true,
-                    distance: current.gCost,
-                    path: this.reconstructPath(current)
-                };
-            }
+    //         // Check if we reached any goal
+    //         if (goals.some(goal => current.position.equals(goal))) {
+    //             return {
+    //                 found: true,
+    //                 distance: current.gCost,
+    //                 path: this.reconstructPath(current)
+    //             };
+    //         }
 
-            // Explore neighbors
-            const neighbors = this.getValidNeighbors(board, current.position);
-            for (const neighbor of neighbors) {
-                const neighborKey = this.positionKey(neighbor);
+    //         // Explore neighbors
+    //         const neighbors = this.getValidNeighbors(board, current.position);
+    //         for (const neighbor of neighbors) {
+    //             const neighborKey = this.positionKey(neighbor);
                 
-                if (closedSet.has(neighborKey)) {
-                    continue;
-                }
+    //             if (closedSet.has(neighborKey)) {
+    //                 continue;
+    //             }
 
-                const tentativeGCost = current.gCost + 1;
+    //             const tentativeGCost = current.gCost + 1;
                 
-                let neighborNode = openSet.find(node => 
-                    node.position.equals(neighbor)
-                );
+    //             let neighborNode = openSet.find(node => 
+    //                 node.position.equals(neighbor)
+    //             );
 
-                if (!neighborNode) {
-                    neighborNode = {
-                        position: neighbor,
-                        gCost: tentativeGCost,
-                        hCost: this.minDistanceToGoals(neighbor, goals),
-                        fCost: 0,
-                        parent: current
-                    };
-                    neighborNode.fCost = neighborNode.gCost + neighborNode.hCost;
-                    openSet.push(neighborNode);
-                } else if (tentativeGCost < neighborNode.gCost) {
-                    neighborNode.gCost = tentativeGCost;
-                    neighborNode.fCost = neighborNode.gCost + neighborNode.hCost;
-                    neighborNode.parent = current;
-                }
-            }
-        }
+    //             if (!neighborNode) {
+    //                 neighborNode = {
+    //                     position: neighbor,
+    //                     gCost: tentativeGCost,
+    //                     hCost: this.minDistanceToGoals(neighbor, goals),
+    //                     fCost: 0,
+    //                     parent: current
+    //                 };
+    //                 neighborNode.fCost = neighborNode.gCost + neighborNode.hCost;
+    //                 openSet.push(neighborNode);
+    //             } else if (tentativeGCost < neighborNode.gCost) {
+    //                 neighborNode.gCost = tentativeGCost;
+    //                 neighborNode.fCost = neighborNode.gCost + neighborNode.hCost;
+    //                 neighborNode.parent = current;
+    //             }
+    //         }
+    //     }
 
-        return { found: false, distance: Infinity, path: [] };
-    }
+    //     return { found: false, distance: Infinity, path: [] };
+    // }
 
     /**
      * Check if movement between two adjacent positions is blocked by walls
@@ -188,22 +209,22 @@ export class PathfindingUtils {
         return board.isWallBetween(from, to);
     }
 
-    /**
-     * Validate if an entire path is clear of wall obstacles
-     */
-    static isPathValid(board: Board, path: Position[]): boolean {
-        if (path.length < 2) {
-            return true;
-        }
+    // /**
+    //  * Validate if an entire path is clear of wall obstacles
+    //  */
+    // static isPathValid(board: Board, path: Position[]): boolean {
+    //     if (path.length < 2) {
+    //         return true;
+    //     }
 
-        for (let i = 0; i < path.length - 1; i++) {
-            if (this.isMovementBlocked(board, path[i], path[i + 1])) {
-                return false;
-            }
-        }
+    //     for (let i = 0; i < path.length - 1; i++) {
+    //         if (this.isMovementBlocked(board, path[i], path[i + 1])) {
+    //             return false;
+    //         }
+    //     }
 
-        return true;
-    }
+    //     return true;
+    // }
 
     /**
      * Calculate Manhattan distance between two positions
@@ -265,20 +286,20 @@ export class PathfindingUtils {
         return neighbors;
     }
 
-    /**
-     * Reconstruct path from goal node back to start
-     */
-    private static reconstructPath(goalNode: PathNode): Position[] {
-        const path: Position[] = [];
-        let current: PathNode | undefined = goalNode;
+    // /**
+    //  * Reconstruct path from goal node back to start
+    //  */
+    // private static reconstructPath(goalNode: PathNode): Position[] {
+    //     const path: Position[] = [];
+    //     let current: PathNode | undefined = goalNode;
         
-        while (current) {
-            path.unshift(current.position);
-            current = current.parent;
-        }
+    //     while (current) {
+    //         path.unshift(current.position);
+    //         current = current.parent;
+    //     }
         
-        return path;
-    }
+    //     return path;
+    // }
 
     /**
      * Generate unique key for position (for use in sets/maps)

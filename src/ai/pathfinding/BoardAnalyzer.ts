@@ -1,4 +1,4 @@
-import { Position, Wall, PlayerID } from '../../types/game';
+import { Position, Wall, PlayerID, P1, P2 } from '../../types/game';
 import { Game } from '../../core/Game';
 import { PathfindingUtils, PathfindingResult } from './PathfindingUtils';
 
@@ -61,8 +61,14 @@ export interface RaceAnalysis {
 /**
  * Positioning analysis
  */
+export enum Stance {
+    Offensive = 'offensive',
+    Defensive = 'defensive',
+    Balanced = 'balanced'
+}
+
 export interface PositioningAnalysis {
-    stance: 'offensive' | 'defensive' | 'balanced';
+    stance: Stance;
     aggression: number; // 0-1
     wallEfficiency: number; // 0-1
 }
@@ -80,6 +86,28 @@ export interface LongTermEvaluation {
  * Strategic board analyzer for advanced AI decision making
  */
 export class BoardAnalyzer {
+    private static readonly RACE_DISTANCE_THRESHOLD = 4;
+    private static readonly AGGRESSION_MAX = 1;
+    private static readonly AGGRESSION_POSITIONAL_ADVANTAGE_WEIGHT = 0.6;
+    private static readonly AGGRESSION_WALL_USAGE_WEIGHT = 0.4;
+    private static readonly OFFENSIVE_AGGRESSION_THRESHOLD = 0.6;
+    private static readonly DEFENSIVE_AGGRESSION_THRESHOLD = 0.4;
+    private static readonly SUSTAINABILITY_MAX = 1;
+    private static readonly SUSTAINABILITY_WALLS_WEIGHT = 0.5;
+    private static readonly SUSTAINABILITY_URGENCY_WEIGHT = 0.5;
+    private static readonly CONTROL_POTENTIAL_MAX = 1;
+    private static readonly CONTROL_POTENTIAL_BOARD_CONTROL_WEIGHT = 0.4;
+    private static readonly CONTROL_POTENTIAL_TERRITORY_CONTROL_WEIGHT = 0.3;
+    private static readonly CONTROL_POTENTIAL_SUSTAINABILITY_WEIGHT = 0.3;
+    private static readonly URGENCY_NEAR_WIN_HIGH_THRESHOLD_MOVES = 2;
+    private static readonly URGENCY_NEAR_WIN_HIGH_VALUE = 0.9;
+    private static readonly URGENCY_NEAR_WIN_MEDIUM_THRESHOLD_MOVES = 4;
+    private static readonly URGENCY_NEAR_WIN_MEDIUM_VALUE = 0.7;
+    private static readonly URGENCY_ENDGAME_VALUE = 0.5;
+    private static readonly URGENCY_LINEAR_BASE = 0.3;
+    private static readonly URGENCY_LINEAR_DECAY_PER_MOVE = 0.02;
+    private static readonly URGENCY_MIN = 0;
+    private static readonly URGENCY_MAX = 1;
     /**
      * Evaluate strategic position for a player
      */
@@ -89,7 +117,7 @@ export class BoardAnalyzer {
         
         // Get player positions
         const playerPos = board.getPawnPosition(playerId);
-        const opponentId = playerId === 1 ? 2 : 1;
+        const opponentId : PlayerID = playerId === P1 ? P2 : P1;
         const opponentPos = board.getPawnPosition(opponentId);
         
         if (!playerPos || !opponentPos) {
@@ -138,100 +166,100 @@ export class BoardAnalyzer {
         };
     }
 
-    /**
-     * Find strategic chokepoints on the board
-     */
-    static findChokePoints(game: Game): ChokepointInfo[] {
-        const board = game.getBoard();
-        const boardSize = board.getBoardSize();
-        const chokepoints: ChokepointInfo[] = [];
+    // /**
+    //  * Find strategic chokepoints on the board
+    //  */
+    // static findChokePoints(game: Game): ChokepointInfo[] {
+    //     const board = game.getBoard();
+    //     const boardSize = board.getBoardSize();
+    //     const chokepoints: ChokepointInfo[] = [];
         
-        // Analyze each position for chokepoint potential
-        for (let row = 1; row < boardSize - 1; row++) {
-            for (let col = 1; col < boardSize - 1; col++) {
-                const position = Position.create(row, col, boardSize);
-                const narrowness = this.calculateNarrowness(board, position);
+    //     // Analyze each position for chokepoint potential
+    //     for (let row = 1; row < boardSize - 1; row++) {
+    //         for (let col = 1; col < boardSize - 1; col++) {
+    //             const position = Position.create(row, col, boardSize);
+    //             const narrowness = this.calculateNarrowness(board, position);
                 
-                if (narrowness > 0.3) { // Potential chokepoint
-                    const strategicValue = this.calculateChokepointStrategicValue(
-                        game, position, narrowness
-                    );
+    //             if (narrowness > 0.3) { // Potential chokepoint
+    //                 const strategicValue = this.calculateChokepointStrategicValue(
+    //                     game, position, narrowness
+    //                 );
                     
-                    chokepoints.push({
-                        position,
-                        narrowness,
-                        strategicValue
-                    });
-                }
-            }
-        }
+    //                 chokepoints.push({
+    //                     position,
+    //                     narrowness,
+    //                     strategicValue
+    //                 });
+    //             }
+    //         }
+    //     }
         
-        // Sort by strategic value (descending)
-        return chokepoints.sort((a, b) => b.strategicValue - a.strategicValue);
-    }
+    //     // Sort by strategic value (descending)
+    //     return chokepoints.sort((a, b) => b.strategicValue - a.strategicValue);
+    // }
 
     /**
      * Evaluate the impact of placing a specific wall
      */
-    static evaluateWallPlacement(game: Game, playerId: PlayerID, wall: Wall): WallImpactAnalysis {
-        // Temporarily place the wall to analyze impact
-        const board = game.getBoard();
-        const originalState = game.getGameState();
+    // static evaluateWallPlacement(game: Game, playerId: PlayerID, wall: Wall): WallImpactAnalysis {
+    //     // Temporarily place the wall to analyze impact
+    //     const board = game.getBoard();
+    //     const originalState = game.getGameState();
         
-        try {
-            // Simulate wall placement
-            game.placeWall(playerId, wall);
+    //     try {
+    //         // Simulate wall placement
+    //         game.placeWall(playerId, wall);
             
-            const playerPos = board.getPawnPosition(playerId)!;
-            const opponentId = playerId === 1 ? 2 : 1;
-            const opponentPos = board.getPawnPosition(opponentId)!;
+    //         const playerPos = board.getPawnPosition(playerId)!;
+    //         const opponentId = playerId === P1 ? P2 : P1;
+    //         const opponentPos = board.getPawnPosition(opponentId)!;
             
-            // Calculate path impacts
-            const playerGoals = this.getPlayerGoals(playerId, board.getBoardSize());
-            const opponentGoals = this.getPlayerGoals(opponentId, board.getBoardSize());
+    //         // Calculate path impacts
+    //         const playerGoals = this.getPlayerGoals(playerId, board.getBoardSize());
+    //         const opponentGoals = this.getPlayerGoals(opponentId, board.getBoardSize());
             
-            const playerPathAfter = PathfindingUtils.findShortestPath(board, playerPos, playerGoals);
-            const opponentPathAfter = PathfindingUtils.findShortestPath(board, opponentPos, opponentGoals);
+    //         const playerPathAfter = PathfindingUtils.findShortestPath(board, playerPos, playerGoals);
+    //         const opponentPathAfter = PathfindingUtils.findShortestPath(board, opponentPos, opponentGoals);
             
-            // Remove wall to calculate before state
-            game.undo();
+    //         // Remove wall to calculate before state
+    //         game.undo();
             
-            const playerPathBefore = PathfindingUtils.findShortestPath(board, playerPos, playerGoals);
-            const opponentPathBefore = PathfindingUtils.findShortestPath(board, opponentPos, opponentGoals);
+    //         const playerPathBefore = PathfindingUtils.findShortestPath(board, playerPos, playerGoals);
+    //         const opponentPathBefore = PathfindingUtils.findShortestPath(board, opponentPos, opponentGoals);
             
-            const playerPathImpact = (playerPathAfter.distance - playerPathBefore.distance);
-            const opponentPathImpact = (opponentPathAfter.distance - opponentPathBefore.distance);
+    //         const playerPathImpact = (playerPathAfter.distance - playerPathBefore.distance);
+    //         const opponentPathImpact = (opponentPathAfter.distance - opponentPathBefore.distance);
             
-            // Calculate strategic value (positive means good for player)
-            const strategicValue = opponentPathImpact - playerPathImpact;
+    //         // Calculate strategic value (positive means good for player)
+    //         const strategicValue = opponentPathImpact - playerPathImpact;
             
-            // Risk assessment
-            const riskAssessment = this.calculateWallRisk(playerPathImpact, playerPathAfter.distance);
+    //         // Risk assessment
+    //         const riskAssessment = this.calculateWallRisk(playerPathImpact, playerPathAfter.distance);
             
-            // Winning potential
-            const winningPotential = this.calculateWinningPotential(
-                strategicValue, opponentPathAfter.distance, playerPathAfter.distance
-            );
+    //         // Winning potential
+    //         const winningPotential = this.calculateWinningPotential(
+    //             strategicValue, opponentPathAfter.distance, playerPathAfter.distance
+    //         );
             
-            return {
-                playerPathImpact,
-                opponentPathImpact,
-                strategicValue,
-                riskAssessment,
-                winningPotential
-            };
+    //         return {
+    //             playerPathImpact,
+    //             opponentPathImpact,
+    //             strategicValue,
+    //             riskAssessment,
+    //             winningPotential
+    //         };
             
-        } catch (error) {
-            // If wall placement fails, return negative evaluation
-            return {
-                playerPathImpact: Infinity,
-                opponentPathImpact: 0,
-                strategicValue: -1,
-                riskAssessment: 1,
-                winningPotential: 0
-            };
-        }
-    }
+    //     } catch (error) {
+    //         // If wall placement fails, return negative evaluation
+    //         return {
+    //             playerPathImpact: Infinity,
+    //             opponentPathImpact: 0,
+    //             strategicValue: -1,
+    //             riskAssessment: 1,
+    //             winningPotential: 0
+    //         };
+    //     }
+    // }
 
     /**
      * Compare optimal paths for both players
@@ -240,11 +268,11 @@ export class BoardAnalyzer {
         const board = game.getBoard();
         const boardSize = board.getBoardSize();
         
-        const player1Pos = board.getPawnPosition(1)!;
-        const player2Pos = board.getPawnPosition(2)!;
+        const player1Pos = board.getPawnPosition(P1)!;
+        const player2Pos = board.getPawnPosition(P2)!;
         
-        const player1Goals = this.getPlayerGoals(1, boardSize);
-        const player2Goals = this.getPlayerGoals(2, boardSize);
+        const player1Goals = this.getPlayerGoals(P1, boardSize);
+        const player2Goals = this.getPlayerGoals(P2, boardSize);
         
         const player1Path = PathfindingUtils.findShortestPath(board, player1Pos, player1Goals);
         const player2Path = PathfindingUtils.findShortestPath(board, player2Pos, player2Goals);
@@ -283,7 +311,7 @@ export class BoardAnalyzer {
         const comparison = this.comparePlayerPaths(game);
         const gameState = game.getGameState();
         
-        const isRace = comparison.player1Distance <= 4 && comparison.player2Distance <= 4;
+        const isRace = comparison.player1Distance <= BoardAnalyzer.RACE_DISTANCE_THRESHOLD && comparison.player2Distance <= BoardAnalyzer.RACE_DISTANCE_THRESHOLD;
         
         const turnsToWin = {
             player1: comparison.player1Distance,
@@ -291,16 +319,16 @@ export class BoardAnalyzer {
         };
         
         // Adjust for current turn
-        if (gameState.currentTurn === 2) {
+        if (gameState.currentTurn === P2) {
             turnsToWin.player2 -= 0.5; // Player 2 moves first
         }
         
         let raceWinner: PlayerID | null = null;
         if (isRace) {
             if (turnsToWin.player1 < turnsToWin.player2) {
-                raceWinner = 1;
+                raceWinner = P1;
             } else if (turnsToWin.player2 < turnsToWin.player1) {
-                raceWinner = 2;
+                raceWinner = P2;
             }
         }
         
@@ -323,20 +351,19 @@ export class BoardAnalyzer {
         const wallsUsed = 10 - (remainingWalls.get(playerId) || 0);
         const wallUsageRate = wallsUsed / 10;
         
-        const aggression = Math.min(1, 
-            (evaluation.positionalAdvantage + 1) / 2 * 0.6 + 
-            wallUsageRate * 0.4
+        // Aggression is a weighted combination of positional advantage and wall usage:
+        // - (evaluation.positionalAdvantage + 1) / 2 normalizes positionalAdvantage from [-1,1] to [0,1].
+        // - 60% weight is given to positional advantage, 40% to wall usage rate.
+        // - The result is capped at 1.
+        const normalizedPositionalAdvantage = (evaluation.positionalAdvantage + 1) / 2;
+        const aggression = Math.min(
+            BoardAnalyzer.AGGRESSION_MAX,
+            normalizedPositionalAdvantage * BoardAnalyzer.AGGRESSION_POSITIONAL_ADVANTAGE_WEIGHT +
+            wallUsageRate * BoardAnalyzer.AGGRESSION_WALL_USAGE_WEIGHT
         );
         
         // Determine stance
-        let stance: 'offensive' | 'defensive' | 'balanced';
-        if (aggression > 0.6 && evaluation.positionalAdvantage > 0) {
-            stance = 'offensive';
-        } else if (aggression < 0.4 && evaluation.positionalAdvantage < 0) {
-            stance = 'defensive';
-        } else {
-            stance = 'balanced';
-        }
+        const stance = BoardAnalyzer.determineStance(aggression, evaluation.positionalAdvantage);
         
         // Wall efficiency (how well walls are being used)
         const wallEfficiency = wallUsageRate > 0 ? 
@@ -349,6 +376,16 @@ export class BoardAnalyzer {
         };
     }
 
+    private static determineStance(aggression: number, positionalAdvantage: number): Stance {
+        if (aggression > BoardAnalyzer.OFFENSIVE_AGGRESSION_THRESHOLD && positionalAdvantage > 0) {
+            return Stance.Offensive;
+        }
+        if (aggression < BoardAnalyzer.DEFENSIVE_AGGRESSION_THRESHOLD && positionalAdvantage < 0) {
+            return Stance.Defensive;
+        }
+        return Stance.Balanced;
+    }
+
     /**
      * Evaluate long-term strategic position
      */
@@ -359,21 +396,28 @@ export class BoardAnalyzer {
         // Sustainability (can the player maintain their position)
         const remainingWalls = game.getRemainingWalls();
         const wallsRemaining = remainingWalls.get(playerId) || 0;
-        const sustainability = Math.min(1, 
-            (wallsRemaining / 10) * 0.5 + 
-            Math.max(0, 1 - evaluation.urgencyScore) * 0.5
+        const sustainability = Math.min(
+            BoardAnalyzer.SUSTAINABILITY_MAX,
+            (wallsRemaining / 10) * BoardAnalyzer.SUSTAINABILITY_WALLS_WEIGHT +
+            Math.max(0, 1 - evaluation.urgencyScore) * BoardAnalyzer.SUSTAINABILITY_URGENCY_WEIGHT
         );
         
         // Flexibility (how many options the player has)
+        // Flexibility is inversely related to the player's shortest path length to their goal.
+        // The formula 1 / (1 + pathLength * 0.1) ensures that as the path length increases,
+        // flexibility decreases, but never reaches zero. Multiplying by 0.1 scales the effect,
+        // and Math.min(1, ...) caps the maximum flexibility at 1. If the path is blocked (Infinity),
+        // flexibility is set to 0.
         const pathLength = evaluation.playerPathLength;
         const flexibility = pathLength < Infinity ? 
             Math.min(1, 1 / (1 + pathLength * 0.1)) : 0;
         
         // Control potential (ability to influence the game)
-        const controlPotential = Math.min(1,
-            evaluation.boardControl * 0.4 +
-            evaluation.territoryControl * 0.3 +
-            sustainability * 0.3
+        const controlPotential = Math.min(
+            BoardAnalyzer.CONTROL_POTENTIAL_MAX,
+            evaluation.boardControl * BoardAnalyzer.CONTROL_POTENTIAL_BOARD_CONTROL_WEIGHT +
+            evaluation.territoryControl * BoardAnalyzer.CONTROL_POTENTIAL_TERRITORY_CONTROL_WEIGHT +
+            sustainability * BoardAnalyzer.CONTROL_POTENTIAL_SUSTAINABILITY_WEIGHT
         );
         
         return {
@@ -388,7 +432,7 @@ export class BoardAnalyzer {
      */
     private static getPlayerGoals(playerId: PlayerID, boardSize: number): Position[] {
         const goals: Position[] = [];
-        const goalRow = playerId === 1 ? boardSize - 1 : 0;
+        const goalRow = playerId === P1 ? boardSize - 1 : 0;
         
         for (let col = 0; col < boardSize; col++) {
             goals.push(Position.create(goalRow, col, boardSize));
@@ -416,6 +460,11 @@ export class BoardAnalyzer {
         }
         
         const totalPath = playerPath + opponentPath;
+        // If the total path length is greater than zero, return the normalized negative path difference.
+        // This gives a value between -1 and 1 indicating positional advantage:
+        //   - A positive value means the player is closer to their goal than the opponent.
+        //   - A negative value means the opponent is closer.
+        // If both paths are zero, return 0 (no advantage).
         return totalPath > 0 ? -pathDifference / totalPath : 0;
     }
 
@@ -425,7 +474,7 @@ export class BoardAnalyzer {
     private static calculateBoardControl(game: Game, playerId: PlayerID): number {
         const remainingWalls = game.getRemainingWalls();
         const wallsUsed = 10 - (remainingWalls.get(playerId) || 0);
-        const opponentId = playerId === 1 ? 2 : 1;
+        const opponentId = playerId === P1 ? P2 : P1;
         const opponentWallsUsed = 10 - (remainingWalls.get(opponentId) || 0);
         
         // Simple board control based on wall usage and positioning
@@ -442,8 +491,7 @@ export class BoardAnalyzer {
         const boardSize = board.getBoardSize();
         
         // Simple territory control based on position
-        const playerGoalRow = playerId === 1 ? boardSize - 1 : 0;
-        const progressToGoal = Math.abs(playerPos.row - (playerId === 1 ? 0 : boardSize - 1));
+        const progressToGoal = Math.abs(playerPos.row - (playerId === P1 ? 0 : boardSize - 1));
         
         return Math.min(1, progressToGoal / boardSize);
     }
@@ -475,6 +523,24 @@ export class BoardAnalyzer {
     /**
      * Calculate urgency score
      */
+    /**
+     * Calculates the urgency score for the current board state, representing how critical it is
+     * for the player to act quickly. The urgency score is a normalized value between 0 and 1,
+     * where higher values indicate a more urgent situation (e.g., both players are close to winning).
+     *
+     * The calculation is based on the minimum path length to the goal for either player, and whether
+     * the game is in an endgame state:
+     *   - If either player is within 2 moves of winning, urgency is set to 0.9 (very high).
+     *   - If either player is within 4 moves, urgency is set to 0.7 (high).
+     *   - If the game is flagged as endgame (but not within 4 moves), urgency is set to 0.5 (moderate).
+     *   - Otherwise, urgency decreases linearly as the minimum path increases, with a base of 0.3
+     *     reduced by 0.02 for each additional move required, but never below 0.
+     *
+     * @param playerPath - The number of moves required for the player to reach their goal.
+     * @param opponentPath - The number of moves required for the opponent to reach their goal.
+     * @param isEndgame - Boolean indicating if the game is in an endgame state.
+     * @returns A number between 0 and 1 representing the urgency score.
+     */
     private static calculateUrgencyScore(
         playerPath: number, 
         opponentPath: number, 
@@ -483,77 +549,77 @@ export class BoardAnalyzer {
         const minPath = Math.min(playerPath, opponentPath);
         let urgency = 0;
         
-        if (minPath <= 2) {
-            urgency = 0.9;
-        } else if (minPath <= 4) {
-            urgency = 0.7;
+        if (minPath <= BoardAnalyzer.URGENCY_NEAR_WIN_HIGH_THRESHOLD_MOVES) {
+            urgency = BoardAnalyzer.URGENCY_NEAR_WIN_HIGH_VALUE;
+        } else if (minPath <= BoardAnalyzer.URGENCY_NEAR_WIN_MEDIUM_THRESHOLD_MOVES) {
+            urgency = BoardAnalyzer.URGENCY_NEAR_WIN_MEDIUM_VALUE;
         } else if (isEndgame) {
-            urgency = 0.5;
+            urgency = BoardAnalyzer.URGENCY_ENDGAME_VALUE;
         } else {
-            urgency = Math.max(0, 0.3 - minPath * 0.02);
+            urgency = Math.max(BoardAnalyzer.URGENCY_MIN, BoardAnalyzer.URGENCY_LINEAR_BASE - minPath * BoardAnalyzer.URGENCY_LINEAR_DECAY_PER_MOVE);
         }
         
-        return Math.min(1, urgency);
+        return Math.min(BoardAnalyzer.URGENCY_MAX, urgency);
     }
 
-    /**
-     * Calculate narrowness of a position (chokepoint detection)
-     */
-    private static calculateNarrowness(board: any, position: Position): number {
-        // Simplified narrowness calculation
-        // In a full implementation, this would analyze surrounding walls and passages
-        return 0.2; // Placeholder
-    }
+    // /**
+    //  * Calculate narrowness of a position (chokepoint detection)
+    //  */
+    // private static calculateNarrowness(board: any, position: Position): number {
+    //     // Simplified narrowness calculation
+    //     // In a full implementation, this would analyze surrounding walls and passages
+    //     return 0.2; // Placeholder
+    // }
 
-    /**
-     * Calculate strategic value of a chokepoint
-     */
-    private static calculateChokepointStrategicValue(
-        game: Game, 
-        position: Position, 
-        narrowness: number
-    ): number {
-        // Simple strategic value based on position centrality and narrowness
-        const board = game.getBoard();
-        const boardSize = board.getBoardSize();
-        const centerDistance = Math.abs(position.row - boardSize/2) + 
-                              Math.abs(position.col - boardSize/2);
-        const centrality = Math.max(0, 1 - centerDistance / boardSize);
+    // /**
+    //  * Calculate strategic value of a chokepoint
+    //  */
+    // private static calculateChokepointStrategicValue(
+    //     game: Game, 
+    //     position: Position, 
+    //     narrowness: number
+    // ): number {
+    //     // Simple strategic value based on position centrality and narrowness
+    //     const board = game.getBoard();
+    //     const boardSize = board.getBoardSize();
+    //     const centerDistance = Math.abs(position.row - boardSize/2) + 
+    //                           Math.abs(position.col - boardSize/2);
+    //     const centrality = Math.max(0, 1 - centerDistance / boardSize);
         
-        return narrowness * 0.6 + centrality * 0.4;
-    }
+    //     return narrowness * 0.6 + centrality * 0.4;
+    // }
 
-    /**
-     * Calculate wall placement risk
-     */
-    private static calculateWallRisk(playerPathImpact: number, newPlayerPath: number): number {
-        if (playerPathImpact <= 0) {
-            return 0; // No risk if wall doesn't hurt player
-        }
+    // /**
+    //  * Calculate wall placement risk
+    //  */
+    // private static calculateWallRisk(playerPathImpact: number, newPlayerPath: number): number {
+    //     if (playerPathImpact <= 0) {
+    //         return 0; // No risk if wall doesn't hurt player
+    //     }
         
-        if (newPlayerPath === Infinity) {
-            return 1; // Maximum risk if player is blocked
-        }
+    //     if (newPlayerPath === Infinity) {
+    //         return 1; // Maximum risk if player is blocked
+    //     }
         
-        return Math.min(1, playerPathImpact / 10);
-    }
+    //     return Math.min(1, playerPathImpact / 10);
+    // }
 
-    /**
-     * Calculate winning potential of a wall placement
-     */
-    private static calculateWinningPotential(
-        strategicValue: number,
-        opponentPathAfter: number,
-        playerPathAfter: number
-    ): number {
-        if (opponentPathAfter === Infinity) {
-            return 1; // Maximum potential if opponent is blocked
-        }
+    // /**
+    //  * Calculate winning potential of a wall placement
+    //  */
+    // private static calculateWinningPotential(
+    //     strategicValue: number,
+    //     opponentPathAfter: number,
+    //     playerPathAfter: number
+    // ): number {
+    //     if (opponentPathAfter === Infinity) {
+    //         return 1; // Maximum potential if opponent is blocked
+    //     }
         
-        const pathAdvantage = opponentPathAfter - playerPathAfter;
-        return Math.max(0, Math.min(1, 
-            strategicValue * 0.1 + 
-            Math.max(0, pathAdvantage) * 0.05
-        ));
-    }
+    //     const pathAdvantage = opponentPathAfter - playerPathAfter;
+    //     return Math.max(0, Math.min(1, 
+    //         strategicValue * 0.1 + 
+    //         Math.max(0, pathAdvantage) * 0.05
+    //     ));
+    // }
 }

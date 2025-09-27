@@ -27,6 +27,10 @@ npm run build
 npm link
 ```
 
+## Documentation
+
+- See the Documentation Index: [docs/README.md](docs/README.md)
+
 ## Running the Game
 
 You can start the game using one of these methods:
